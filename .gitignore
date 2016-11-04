@@ -25,6 +25,10 @@ local
 *.tlog
 *.log
 *.pdb
+*.exp
+*.lib
+*.map
+*.obj
 
 **/log.txt
 
