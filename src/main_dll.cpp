@@ -35,11 +35,14 @@ struct ztGame
 	ztTextureID     background;
 	ztTextureID     board_grid;
 	ztTextureID     block;
+	ztTextureID     block_ghost;
 
 	ztFontID        font_primary;
 	ztFontID        font_large;
 
 	Board           board;
+
+	bool            paused;
 };
 
 
@@ -96,6 +99,7 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 	game->background   = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/background.png"));
 	game->board_grid   = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/board_grid.png"));
 	game->block        = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/block.png"));
+	game->block_ghost  = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/block_ghost.png"));
 	game->font_primary = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact.fnt"));
 	game->font_large   = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
 
@@ -104,6 +108,7 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 	}
 
 	game->board = boardMake(10, 20);
+	game->paused = false;
 
 	return true;
 }
@@ -152,6 +157,7 @@ ZT_DLLEXPORT void dll_cleanup(void *memory)
 	zt_textureFree(game->background);
 	zt_textureFree(game->board_grid);
 	zt_textureFree(game->block);
+	zt_textureFree(game->block_ghost);
 	zt_fontFree(game->font_primary);
 
 	//if(game->vr) {
@@ -258,37 +264,48 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	//	zt_sceneLighting(game->scene, &game->camera_3d);
 	//	zt_sceneRender(game->scene, &game->camera_3d);
 
-	{
-		BoardRules rules = {};
-		rules.max_next = 3;
-		rules.drop_time = .5f;
-		rules.clear_time = 1;
+	if (input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
+		game->paused = !game->paused;
+	}
 
+	BoardRules rules = {};
+	rules.max_next              = 3;
+	rules.drop_time             = .5f;
+	rules.drop_time_soft        = .01f;
+	rules.clear_time            = .10f;
+	rules.input_delay_move      = .05f;
+	rules.input_delay_rotation  = .25f;
+	rules.input_delay_hard_drop = 1000;
+
+	if(!game->paused) {
 		BoardInput_Enum inputs[BoardInput_MAX];
 		int inputs_count = 0;
 
-		if (input_keys[ztInputKeys_A].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_A].pressed() || input_controller->pressed(ztInputControllerButton_X)) {
 			inputs[inputs_count++] = BoardInput_RotateLeft;
 		}
-		if (input_keys[ztInputKeys_D].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_D].pressed() || input_controller->pressed(ztInputControllerButton_B)) {
 			inputs[inputs_count++] = BoardInput_RotateRight;
 		}
-		if (input_keys[ztInputKeys_S].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_Down].pressed() || input_controller->pressed(ztInputControllerButton_DPadDown)) {
 			inputs[inputs_count++] = BoardInput_SoftDrop;
 		}
-		if (input_keys[ztInputKeys_W].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_Up].pressed() || input_controller->pressed(ztInputControllerButton_DPadUp)) {
 			inputs[inputs_count++] = BoardInput_HardDrop;
 		}
-		if (input_keys[ztInputKeys_Left].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_Left].pressed() || input_controller->pressed(ztInputControllerButton_DPadLeft)) {
 			inputs[inputs_count++] = BoardInput_MoveLeft;
 		}
-		if (input_keys[ztInputKeys_Right].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_Right].pressed() || input_controller->pressed(ztInputControllerButton_DPadRight)) {
 			inputs[inputs_count++] = BoardInput_MoveRight;
 		}
-		if (input_keys[ztInputKeys_Tab].justPressedOrRepeated()) {
+		if (input_keys[ztInputKeys_Tab].pressed() || input_controller->pressed(ztInputControllerButton_A) || input_controller->pressed(ztInputControllerButton_Y)) {
 			inputs[inputs_count++] = BoardInput_Hold;
 		}
 
+		if (input_keys[ztInputKeys_R].justPressed()) {
+			boardReset(&game->board);
+		}
 
 		boardUpdate(&game->board, dt, &rules, inputs, inputs_count);
 	}
@@ -328,17 +345,27 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	}
 	{
 
-		boardRender(&game->board, &game->draw_list, game->block);
+		boardRender(&game->board, &game->draw_list, game->block, game->block_ghost);
 	}
 
 	{
 		// draw hold area
 		_drawLabeledArea(game, "Hold", ztVec3(-3.25f, 4.76f, 0), ztVec2(2.5f, 2.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
+
+		if (game->board.hold != BlockType_Invalid) {
+			boardRenderBlock(game->board.hold, &game->draw_list, ztVec2(-4.5f, 3.5f), 0, game->block);
+		}
 	}
 
 	{
 		// draw next area
 		_drawLabeledArea(game, "Next", ztVec3(3.25f, 4.76f, 0), ztVec2(2.5f, 7.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Left, ztAlign_Top);
+
+		zt_fiz(rules.max_next) {
+			if (game->board.next[i] != BlockType_Invalid) {
+				boardRenderBlock(game->board.next[i], &game->draw_list, ztVec2(4.5f, 3.5f - (i * 2.5f)), 0, game->block);
+			}
+		}
 	}
 
 	ztVec2 size(4.25f, 0.95f);
@@ -366,6 +393,10 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 		_drawLabeledArea(game, "Score", pos, size, area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		zt_drawListAddText2D(&game->draw_list, game->font_large, "000,000,000", ztVec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
+	}
+
+	if (game->paused) {
+		zt_drawListAddText2D(&game->draw_list, game->font_large, "Paused", ztVec2(4.5f, -4), ztAlign_Center, ztAnchor_Center);
 	}
 
 	zt_drawListPopShader(&game->draw_list);
