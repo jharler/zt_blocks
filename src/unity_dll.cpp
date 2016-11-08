@@ -12,12 +12,16 @@
 #define ZT_NO_DIRECTX
 #endif
 
+//#define ZT_OPENGL_DEBUGGING
+
 // --------------------------------------------------------------------------------------------------
 // All source files must be included here.
 // Remove them from compilation if they are added to the project
 
 #include "main_dll.cpp"
 #include "board.cpp"
+#include "game_type_arcade.cpp"
+
 
 // --------------------------------------------------------------------------------------------------
 

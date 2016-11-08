@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\board.cpp" />
+    <None Include="..\..\..\src\game_type_arcade.cpp" />
     <ClCompile Include="..\..\..\src\unity_dll.cpp" />
     <None Include="..\..\..\src\main_dll.cpp" />
   </ItemGroup>
@@ -40,6 +41,8 @@
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_opengl.h" />
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_tools.h" />
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_vr.h" />
+    <ClInclude Include="..\..\..\src\game_type.h" />
+    <None Include="..\..\..\src\game_type_arcade.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{00007F8C-6379-070B-593C-5D690000698F}</ProjectGuid>
