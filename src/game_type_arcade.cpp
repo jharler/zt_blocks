@@ -119,7 +119,11 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	gta.board.audio_block_move   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/plop.wav"));
 	gta.board.audio_block_rotate = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/boop.wav"));
 	gta.board.audio_block_drop   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/drop.wav"));
-	gta.board.audio_line_clear   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/line_clear.wav"));
+
+	zt_fize(gta.board.audio_line_clear) {
+		zt_strMakePrintf(clip, 128, "audio/line_clear_%d.wav", i + 1);
+		gta.board.audio_line_clear[i] = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, clip));
+	}
 
 	gta.paused = false;
 
@@ -137,7 +141,9 @@ void gt_arcadeFree(GameTypeArcade *gta)
 	zt_audioClipFree(gta->board.audio_block_move);
 	zt_audioClipFree(gta->board.audio_block_rotate);
 	zt_audioClipFree(gta->board.audio_block_drop);
-	zt_audioClipFree(gta->board.audio_line_clear);
+	zt_fize(gta->board.audio_line_clear) {
+		zt_audioClipFree(gta->board.audio_line_clear[i]);
+	}
 
 	boardFree(&gta->board);
 

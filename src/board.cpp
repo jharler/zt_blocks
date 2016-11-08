@@ -1064,8 +1064,8 @@ ztInternal void _boardCheckForLines(Board *board, BoardRules *rules)
 		board->current_state = BoardState_Clearing;
 		board->time_to_clear = rules->clear_time;
 
-		if (board->audio_line_clear != ztInvalidID) {
-			zt_audioClipPlayOnce(board->audio_line_clear);
+		if (board->audio_line_clear[cleared_lines - 1] != ztInvalidID) {
+			zt_audioClipPlayOnce(board->audio_line_clear[cleared_lines - 1]);
 		}
 
 	}
@@ -1218,6 +1218,10 @@ Board boardMake(int width, int height, BoardRandomizer_Enum randomizer, BoardRot
 	board.randomizer_type = randomizer;
 
 	boardReset(&board);
+
+	zt_fize(board.audio_line_clear) {
+		board.audio_line_clear[i] = ztInvalidID;
+	}
 
 	return board;
 }

@@ -149,11 +149,11 @@ struct Board
 		} randomizer_gm;
 	};
 
-	ztAudioClipID            audio_block_move   = ztInvalidID;
-	ztAudioClipID            audio_block_rotate = ztInvalidID;
-	ztAudioClipID            audio_block_drop   = ztInvalidID;
-	ztAudioClipID            audio_block_hold   = ztInvalidID;
-	ztAudioClipID            audio_line_clear   = ztInvalidID;
+	ztAudioClipID            audio_block_move    = ztInvalidID;
+	ztAudioClipID            audio_block_rotate  = ztInvalidID;
+	ztAudioClipID            audio_block_drop    = ztInvalidID;
+	ztAudioClipID            audio_block_hold    = ztInvalidID;
+	ztAudioClipID            audio_line_clear[4];
 
 
 	BoardStats               stats;
