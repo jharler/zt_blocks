@@ -1324,8 +1324,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 		_boardCycleBlocks(board, rules->max_next, _boardGetNextBlock(board, rules));
 
 		if (board->current_state == BoardState_Failed) {
-			boardReset(board);
-			return board->current_state;
+			return BoardState_Failed;
 		}
 	}
 

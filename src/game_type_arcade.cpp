@@ -126,6 +126,7 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	}
 
 	gta.paused = false;
+	gta.ignore_input = true;
 
 	*gta_ptr = gta;
 
@@ -152,12 +153,12 @@ void gt_arcadeFree(GameTypeArcade *gta)
 	zt_textureFree(gta->block);
 	zt_textureFree(gta->block_ghost);
 	zt_fontFree(gta->font_primary);
-
+	zt_fontFree(gta->font_large);
 }
 
 // ------------------------------------------------------------------------------------------------
 
-void gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse)
+bool gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse)
 {
 	if (input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
 		gta->paused = !gta->paused;
@@ -171,32 +172,44 @@ void gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, ztInputKeys *input_keys, ztInp
 		BoardInput_Enum inputs[BoardInput_MAX];
 		int inputs_count = 0;
 
-		if (input_keys[ztInputKeys_A].pressed() || input_controller->pressed(ztInputControllerButton_X)) {
-			inputs[inputs_count++] = BoardInput_RotateLeft;
+		if (gta->ignore_input) {
+			if (!input_this_frame) {
+				gta->ignore_input = false;
+			}
 		}
-		if (input_keys[ztInputKeys_D].pressed() || input_keys[ztInputKeys_Up].pressed() || input_controller->pressed(ztInputControllerButton_Y)) {
-			inputs[inputs_count++] = BoardInput_RotateRight;
-		}
-		if (input_keys[ztInputKeys_Down].pressed() || input_controller->pressed(ztInputControllerButton_DPadDown)) {
-			inputs[inputs_count++] = BoardInput_SoftDrop;
-		}
-		if (input_keys[ztInputKeys_Space].pressed() || input_controller->pressed(ztInputControllerButton_DPadUp)) {
-			inputs[inputs_count++] = BoardInput_HardDrop;
-		}
-		if (input_keys[ztInputKeys_Left].pressed() || input_controller->pressed(ztInputControllerButton_DPadLeft)) {
-			inputs[inputs_count++] = BoardInput_MoveLeft;
-		}
-		if (input_keys[ztInputKeys_Right].pressed() || input_controller->pressed(ztInputControllerButton_DPadRight)) {
-			inputs[inputs_count++] = BoardInput_MoveRight;
-		}
-		if (input_keys[ztInputKeys_Tab].pressed() || input_controller->pressed(ztInputControllerButton_TriggerLeft) || input_controller->pressed(ztInputControllerButton_TriggerRight)) {
-			inputs[inputs_count++] = BoardInput_Hold;
+		else {
+			if (input_keys[ztInputKeys_A].pressed() || input_controller->pressed(ztInputControllerButton_X)) {
+				inputs[inputs_count++] = BoardInput_RotateLeft;
+			}
+			if (input_keys[ztInputKeys_D].pressed() || input_keys[ztInputKeys_Up].pressed() || input_controller->pressed(ztInputControllerButton_Y)) {
+				inputs[inputs_count++] = BoardInput_RotateRight;
+			}
+			if (input_keys[ztInputKeys_Down].pressed() || input_controller->pressed(ztInputControllerButton_DPadDown)) {
+				inputs[inputs_count++] = BoardInput_SoftDrop;
+			}
+			if (input_keys[ztInputKeys_Space].pressed() || input_controller->pressed(ztInputControllerButton_DPadUp)) {
+				inputs[inputs_count++] = BoardInput_HardDrop;
+			}
+			if (input_keys[ztInputKeys_Left].pressed() || input_controller->pressed(ztInputControllerButton_DPadLeft)) {
+				inputs[inputs_count++] = BoardInput_MoveLeft;
+			}
+			if (input_keys[ztInputKeys_Right].pressed() || input_controller->pressed(ztInputControllerButton_DPadRight)) {
+				inputs[inputs_count++] = BoardInput_MoveRight;
+			}
+			if (input_keys[ztInputKeys_Tab].pressed() || input_controller->pressed(ztInputControllerButton_TriggerLeft) || input_controller->pressed(ztInputControllerButton_TriggerRight)) {
+				inputs[inputs_count++] = BoardInput_Hold;
+			}
 		}
 
 		boardUpdate(&gta->board, dt, &gta->rules, inputs, inputs_count);
 	}
 
+	if (gta->board.current_state == BoardState_Failed) {
+		return false;
+	}
+
 	gta->mouse_screen_pos = ztPoint2(input_mouse->screen_x, input_mouse->screen_y);
+	return true;
 }
 
 // ------------------------------------------------------------------------------------------------

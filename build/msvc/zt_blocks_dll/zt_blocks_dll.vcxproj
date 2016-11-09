@@ -21,6 +21,10 @@
   <ItemGroup>
     <None Include="..\..\..\src\board.cpp" />
     <None Include="..\..\..\src\game_type_arcade.cpp" />
+    <None Include="..\..\..\src\game_state_intro.cpp" />
+    <None Include="..\..\..\src\game_state_menu_main.cpp" />
+    <None Include="..\..\..\src\game_state_menu_options.cpp" />
+    <None Include="..\..\..\src\game_state_playing.cpp" />
     <ClCompile Include="..\..\..\src\unity_dll.cpp" />
     <None Include="..\..\..\src\main_dll.cpp" />
   </ItemGroup>
@@ -41,6 +45,8 @@
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_opengl.h" />
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_tools.h" />
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_vr.h" />
+    <None Include="..\..\..\src\game_state.h" />
+    <None Include="..\..\..\src\game.h" />
     <ClInclude Include="..\..\..\src\game_type.h" />
     <None Include="..\..\..\src\game_type_arcade.h" />
   </ItemGroup>

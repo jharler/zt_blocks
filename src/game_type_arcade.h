@@ -22,12 +22,14 @@ struct GameTypeArcade
 	ztFontID        font_large;
 
 	ztPoint2        mouse_screen_pos;
+
+	bool            ignore_input;
 };
 
 
 bool gt_arcadeMake(GameTypeArcade *gta, ztAssetManager *asset_manager);
 void gt_arcadeFree(GameTypeArcade *gta);
-void gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse);
+bool gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse);
 void gt_arcadeRender(GameTypeArcade *gta, ztDrawList *draw_list, ztCamera *camera_2d);
 
 

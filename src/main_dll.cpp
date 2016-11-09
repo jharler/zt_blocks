@@ -6,39 +6,12 @@
 
 // headers ========================================================================================
 
-#include "zt_tools.h"
-#include "zt_game.h"
-#include "zt_game_gui.h"
-//#include "zt_vr.h"
+#include "game.h"
 
-#include "board.h"
-#include "game_type_arcade.h"
 
 // types/enums/defines ============================================================================
 
 // structs/classes ================================================================================
-
-// NOTE: do not assign values in the struct definition
-//       for some reason, setting game_type in the struct caused nothing to draw on screen
-
-struct ztGame
-{
-	ztGameDetails  *details;
-	ztGameSettings *settings;
-
-	ztCamera        camera_2d;
-	ztCamera        camera_3d;
-	ztGuiManagerID  gui_manager;
-	//ztVrSystem     *vr;
-	ztAssetManager  asset_manager;
-	ztDrawList      draw_list;
-	ztScene        *scene;
-	ztLight         scene_light;
-
-	GameType_Enum  game_type;
-	GameTypeArcade game_type_arcade;
-};
-
 
 // structs/classes ================================================================================
 
@@ -64,7 +37,6 @@ ZT_DLLEXPORT bool dll_settings(ztGameDetails* details, ztGameSettings* settings)
 ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, void** game_memory)
 {
 	ztGame *game = zt_mallocStruct(ztGame);
-	*game = {};
 	*game_memory = game;
 
 	game->details = details;
@@ -91,20 +63,12 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 		return false;
 	}
 
+	game->font_primary = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
+
 	game->scene = zt_sceneMake(zt_memGetGlobalArena());
 
-	game->game_type = GameType_Arcade;
-
-	switch (game->game_type)
-	{
-		case GameType_Arcade: {
-			if (!gt_arcadeMake(&game->game_type_arcade, &game->asset_manager)) {
-				return false;
-			}
-		} break;
-	
-		default: zt_assert(false);
-	}
+	game->game_state               = GameState_Invalid;
+	game->game_state_transition_to = GameState_Intro;
 
 	return true;
 }
@@ -145,18 +109,29 @@ ZT_DLLEXPORT void dll_screenChange(ztGameSettings *settings, void *memory)
 
 // ------------------------------------------------------------------------------------------------
 
+ztInternal void dll_gameStateCleanup(ztGame *game)
+{
+	switch (game->game_state)
+	{
+		case GameState_Intro: {
+			gs_introCleanup(game);
+		} break;
+
+		case GameState_Playing: {
+			gs_playingCleanup(game);
+		} break;
+	}
+}
+
+// ------------------------------------------------------------------------------------------------
+
 ZT_DLLEXPORT void dll_cleanup(void *memory)
 {
 	ztGame *game = (ztGame*)memory;
 
-	switch (game->game_type)
-	{
-		case GameType_Arcade: {
-			gt_arcadeFree(&game->game_type_arcade);
-		} break;
-	
-		default: zt_assert(false);
-	}
+	dll_gameStateCleanup(game);
+
+	zt_fontFree(game->font_primary);
 
 	//if(game->vr) {
 	//	if (game->vr->headset.model) {
@@ -205,13 +180,54 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 		zt_audioSetMute(!zt_audioGetMute());
 	}
 
-	switch (game->game_type)
+	if (game->game_state_transition_to != GameState_Invalid) {
+		dll_gameStateCleanup(game);
+
+		game->game_state = game->game_state_transition_to;
+		game->game_state_transition_to = GameState_Invalid;
+
+		switch (game->game_state)
+		{
+			case GameState_Intro: {
+				if (!gs_introBegin(game)) {
+					return false;
+				}
+			} break;
+
+			case GameState_MenuMain: {
+				if (!gs_menuMainBegin(game)) {
+					return false;
+				}
+			} break;
+
+			case GameState_Playing: {
+				if (!gs_playingBegin(game)) {
+					return false;
+				}
+			} break;
+		}
+	}
+
+	bool input_this_frame = zt_inputThisFrame();
+	switch (game->game_state)
 	{
-		case GameType_Arcade: {
-			gt_arcadeUpdate(&game->game_type_arcade, dt, input_keys, input_controller, input_mouse);
+		case GameState_Intro: {
+			if (!gs_introUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+				return false;
+			}
 		} break;
 
-		default: zt_assert(false);
+		case GameState_MenuMain: {
+			if (!gs_menuMainUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+				return false;
+			}
+		} break;
+
+		case GameState_Playing: {
+			if (!gs_playingUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+				return false;
+			}
+		} break;
 	}
 
 	zt_rendererClear(ztVec4(.25f, 0, 0, 0));
@@ -243,14 +259,21 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 
 	zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));
 	{
-		switch (game->game_type)
+		switch (game->game_state)
 		{
-			case GameType_Arcade: {
-				gt_arcadeRender(&game->game_type_arcade, &game->draw_list, &game->camera_2d);
+			case GameState_Intro: {
+				gs_introRender(game, &game->draw_list);
 			} break;
 
-			default: zt_assert(false);
+			case GameState_MenuMain: {
+				gs_menuMainRender(game, &game->draw_list);
+			} break;
+
+			case GameState_Playing: {
+				gs_playingRender(game, &game->draw_list);
+			} break;
 		}
+
 	}
 	zt_drawListPopShader(&game->draw_list);
 	zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest);
