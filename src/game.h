@@ -39,6 +39,13 @@ struct ztGame
 	GameStatePlaying     game_state_playing;
 
 	ztFontID             font_primary;
+	ztFontID             font_huge;
+
+	ztTextureID          tex_background;
+	ztTextureID          tex_zt_logo;
+
+	ztAudioClipID        audio_menu_change;
+	ztAudioClipID        audio_menu_select;
 };
 
 

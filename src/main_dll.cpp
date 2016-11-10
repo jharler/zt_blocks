@@ -43,7 +43,7 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 	game->settings = settings;
 
 	game->gui_manager = zt_guiManagerMake(&game->camera_2d, nullptr, zt_memGetGlobalArena());
-	zt_guiInitDebug(game->gui_manager);
+	//zt_guiInitDebug(game->gui_manager);
 
 	//game->vr = zt_vrIsHeadsetPresent() ? zt_vrMake() : nullptr;
 
@@ -63,7 +63,17 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 		return false;
 	}
 
-	game->font_primary = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
+	game->font_primary   = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
+	game->font_huge      = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_huge.fnt"));
+	game->tex_background = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/background.png"));
+	game->tex_zt_logo    = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/zt_logo.png"));
+
+	if (game->font_primary == ztInvalidID || game->tex_background == ztInvalidID || game->tex_zt_logo == ztInvalidID) {
+		return false;
+	}
+
+	game->audio_menu_change = zt_audioClipMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "audio/boop.wav"));
+	game->audio_menu_select = zt_audioClipMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "audio/line_clear_1.wav"));
 
 	game->scene = zt_sceneMake(zt_memGetGlobalArena());
 
@@ -117,6 +127,10 @@ ztInternal void dll_gameStateCleanup(ztGame *game)
 			gs_introCleanup(game);
 		} break;
 
+		case GameState_MenuMain: {
+			gs_menuMainCleanup(game);
+		} break;
+
 		case GameState_Playing: {
 			gs_playingCleanup(game);
 		} break;
@@ -131,7 +145,12 @@ ZT_DLLEXPORT void dll_cleanup(void *memory)
 
 	dll_gameStateCleanup(game);
 
+	zt_audioClipFree(game->audio_menu_change);
+	zt_audioClipFree(game->audio_menu_select);
 	zt_fontFree(game->font_primary);
+	zt_fontFree(game->font_huge);
+	zt_textureFree(game->tex_background);
+	zt_textureFree(game->tex_zt_logo);
 
 	//if(game->vr) {
 	//	if (game->vr->headset.model) {

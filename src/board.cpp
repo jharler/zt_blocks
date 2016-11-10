@@ -1414,6 +1414,10 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 							}
 
 							board->block_has_held = true;
+
+							if (board->audio_block_hold != ztInvalidID) {
+								zt_audioClipPlayOnce(board->audio_block_hold);
+							}
 						}
 					} break;
 				}

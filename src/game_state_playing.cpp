@@ -41,7 +41,7 @@ bool gs_playingUpdate(ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *
 	switch (game->game_state_playing.game_type)
 	{
 		case GameType_Arcade: {
-			if (!gt_arcadeUpdate(&game->game_state_playing.game_type_arcade, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+			if (!gt_arcadeUpdate(&game->game_state_playing.game_type_arcade, game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
 				game->game_state_transition_to = GameState_MenuMain;
 			}
 		} break;
@@ -59,7 +59,7 @@ void gs_playingRender(ztGame *game, ztDrawList *draw_list)
 	switch (game->game_state_playing.game_type)
 	{
 		case GameType_Arcade: {
-			gt_arcadeRender(&game->game_state_playing.game_type_arcade, &game->draw_list, &game->camera_2d);
+			gt_arcadeRender(&game->game_state_playing.game_type_arcade, game, &game->draw_list, &game->camera_2d, game->tex_background);
 		} break;
 	
 		default: zt_assert(false);

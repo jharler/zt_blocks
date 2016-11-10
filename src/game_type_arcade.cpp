@@ -1,6 +1,24 @@
 #include "game_type_arcade.h"
 #include "zt_game_gui.h"
 
+// ------------------------------------------------------------------------------------------------
+
+enum GameTypeArcadePause_Enum
+{
+	GameTypeArcadePause_Resume,
+	GameTypeArcadePause_Restart,
+	GameTypeArcadePause_Exit,
+};
+
+// ------------------------------------------------------------------------------------------------
+
+char *_gta_pause[] = {
+	"Resume",
+	"Restart",
+	"Main Menu",
+};
+
+// ------------------------------------------------------------------------------------------------
 
 ZT_FUNCTION_POINTER_REGISTER(console_displayStats, ZT_FUNC_DEBUG_CONSOLE_COMMAND(console_displayStats))
 {
@@ -105,20 +123,20 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	gta.rules.lock_time_hard = _gta_lock_times[idx];
 	gta.rules.lock_time_soft = gta.rules.lock_time_hard * .2f;
 
-	gta.background   = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/background.png"));
 	gta.board_grid   = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/board_grid.png"));
 	gta.block        = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/block.png"));
 	gta.block_ghost  = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/block_ghost.png"));
 	gta.font_primary = zt_fontMakeFromBmpFontAsset(asset_manager, zt_assetLoad(asset_manager, "fonts/impact.fnt"));
 	gta.font_large   = zt_fontMakeFromBmpFontAsset(asset_manager, zt_assetLoad(asset_manager, "fonts/impact_large.fnt"));
 
-	if (gta.background == ztInvalidID || gta.board_grid == ztInvalidID || gta.block == ztInvalidID || gta.font_primary == ztInvalidID || gta.font_large == ztInvalidID) {
+	if (gta.board_grid == ztInvalidID || gta.block == ztInvalidID || gta.font_primary == ztInvalidID || gta.font_large == ztInvalidID) {
 		return false;
 	}
 
 	gta.board.audio_block_move   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/plop.wav"));
 	gta.board.audio_block_rotate = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/boop.wav"));
 	gta.board.audio_block_drop   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/drop.wav"));
+	gta.board.audio_block_hold   = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, "audio/shoop.wav"));
 
 	zt_fize(gta.board.audio_line_clear) {
 		zt_strMakePrintf(clip, 128, "audio/line_clear_%d.wav", i + 1);
@@ -127,6 +145,10 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 
 	gta.paused = false;
 	gta.ignore_input = true;
+	gta.game_state_menu = zt_mallocStruct(GameStateMenu);
+	gta.game_state_menu->flags |= GameStateMenuFlags_Darken | GameStateMenuFlags_Background;
+
+	gs_menuSetOptions(gta.game_state_menu, _gta_pause, zt_elementsOf(_gta_pause));
 
 	*gta_ptr = gta;
 
@@ -139,16 +161,20 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 
 void gt_arcadeFree(GameTypeArcade *gta)
 {
+	gs_menuFreeOptions(gta->game_state_menu);
+	zt_free(gta->game_state_menu);
+	gta->game_state_menu = nullptr;
+
 	zt_audioClipFree(gta->board.audio_block_move);
 	zt_audioClipFree(gta->board.audio_block_rotate);
 	zt_audioClipFree(gta->board.audio_block_drop);
+	zt_audioClipFree(gta->board.audio_block_hold);
 	zt_fize(gta->board.audio_line_clear) {
 		zt_audioClipFree(gta->board.audio_line_clear[i]);
 	}
 
 	boardFree(&gta->board);
 
-	zt_textureFree(gta->background);
 	zt_textureFree(gta->board_grid);
 	zt_textureFree(gta->block);
 	zt_textureFree(gta->block_ghost);
@@ -158,12 +184,8 @@ void gt_arcadeFree(GameTypeArcade *gta)
 
 // ------------------------------------------------------------------------------------------------
 
-bool gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse)
+bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse)
 {
-	if (input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
-		gta->paused = !gta->paused;
-	}
-
 	if (input_keys[ztInputKeys_R].justPressed()) {
 		boardReset(&gta->board);
 	}
@@ -203,18 +225,45 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, r32 dt, bool input_this_frame, ztInput
 
 		boardUpdate(&gta->board, dt, &gta->rules, inputs, inputs_count);
 	}
+	else {
+		if (gs_menuUpdate(gta->game_state_menu, game, dt, input_this_frame, input_keys, input_controller, input_mouse) == GameStateMenuResult_Selected) {
+
+			switch (gta->game_state_menu->active_option)
+			{
+				case GameTypeArcadePause_Resume: {
+					gta->paused = !gta->paused;
+				} break;
+
+				case GameTypeArcadePause_Restart: {
+					boardReset(&gta->board);
+					gta->paused = !gta->paused;
+				} break;
+
+				case GameTypeArcadePause_Exit: {
+					game->game_state_transition_to = GameState_MenuMain;
+				} break;
+			}
+		}
+	}
 
 	if (gta->board.current_state == BoardState_Failed) {
 		return false;
 	}
 
 	gta->mouse_screen_pos = ztPoint2(input_mouse->screen_x, input_mouse->screen_y);
+
+	if (!gta->paused && input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
+		gta->paused = true;
+		gta->game_state_menu->active_option = 0;
+		gs_menuBegin(gta->game_state_menu);
+	}
+
 	return true;
 }
 
 // ------------------------------------------------------------------------------------------------
 
-void gt_arcadeRender(GameTypeArcade *gta, ztDrawList *draw_list, ztCamera *camera_2d)
+void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, ztCamera *camera_2d, ztTextureID tex_background)
 {
 	int level = zt_convertToi32Floor(gta->board.stats.lines_cleared / 10.f);
 
@@ -226,7 +275,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztDrawList *draw_list, ztCamera *camer
 
 	{
 		// draw background
-		zt_drawListPushTexture(draw_list, gta->background);
+		zt_drawListPushTexture(draw_list, tex_background);
 
 		ztVec2 cam_size = zt_cameraOrthoGetViewportSize(camera_2d);
 		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, ztVec2(0, 0), ztVec2(1, 1));
@@ -331,7 +380,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztDrawList *draw_list, ztCamera *camer
 	}
 
 	if (gta->paused) {
-		zt_drawListAddText2D(draw_list, gta->font_large, "Paused", ztVec2(4.5f, -4), ztAlign_Center, ztAnchor_Center);
+		gs_menuRender(gta->game_state_menu, game, draw_list);
 	}
 }
 
