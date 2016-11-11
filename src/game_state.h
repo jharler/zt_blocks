@@ -16,7 +16,7 @@ enum GameState_Enum
 
 	GameState_Intro,
 	GameState_MenuMain,
-	GameState_MenuOptions,
+	GameState_Credits,
 	GameState_Playing,
 
 	GameState_MAX,
@@ -68,16 +68,43 @@ enum GameStateMenuFlags_Enum
 	GameStateMenuFlags_BoxActive  = (1 << 5),
 };
 
+// ------------------------------------------------------------------------------------------------
+
+enum GameStateMenuOptionType_Enum
+{
+	GameStateMenuOptionType_None,
+	GameStateMenuOptionType_Bool,
+
+	GameStateMenuOptionType_MAX,
+};
+
+// ------------------------------------------------------------------------------------------------
+
+struct GameStateMenuOption
+{
+	GameStateMenuOptionType_Enum type;
+
+	union {
+		bool val_bool;
+	};
+};
+
+// ------------------------------------------------------------------------------------------------
 
 struct GameStateMenu
 {
-	int    active_option;
-	i32    flags;
-	char **options;
-	int    options_count;
-	r32    menu_time;
-	r32    select_time;
+	int                  active_option;
+	i32                  flags;
+	char               **options;
+	int                  options_count;
+	r32                  menu_time;
+	r32                  select_time;
+	r32                  max_width;
+
+	GameStateMenuOption *option_vals;
 };
+
+// ------------------------------------------------------------------------------------------------
 
 enum GameStateMenuResult_Enum
 {
@@ -85,11 +112,14 @@ enum GameStateMenuResult_Enum
 	GameStateMenuResult_Selected,
 };
 
+// ------------------------------------------------------------------------------------------------
+
 #define GS_MENU_SAFETY_THRESHOLD    .25f
 #define GS_MENU_SELECT_TIME         .25f
 
+// ------------------------------------------------------------------------------------------------
 
-void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count);
+void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count, GameStateMenuOption *option_vals = nullptr);
 void gs_menuFreeOptions(GameStateMenu *gs_menu);
 
 void                     gs_menuBegin(GameStateMenu *gs_menu);
@@ -108,20 +138,24 @@ struct GameStateMenuMain
 
 	GameState_Enum next_state;
 
-	ztTextureID    tex_logo;
-
 	GameStateMenu  gs_menu;
+	GameStateMenu  gs_options_menu;
+
+	GameStateMenuOption *gs_options_menu_options;
+
+	bool in_options;
+	r32  options_transition_time;
 };
 
 // ------------------------------------------------------------------------------------------------
 
 #define GS_MENU_LOGO_SIZE		ztVec2(1280 / 64.f, 604 / 64.f)
-#define GS_MENU_LOGO_POSITION	ztVec3(0, 1.25f, 0)
+#define GS_MENU_LOGO_POSITION	ztVec3(0, 1.75f, 0)
 
 #define GS_MENU_MAIN_TIME_FADE_IN	.5f
 #define GS_MENU_MAIN_TIME_FADE_OUT	.5f
 
-#define GS_MENU_MAIN_OFFSET         ztVec2(0, -2)
+#define GS_MENU_MAIN_OFFSET         ztVec2(0, -1.65f)
 
 // ------------------------------------------------------------------------------------------------
 
@@ -136,11 +170,22 @@ void gs_menuMainRender(ztGame *game, ztDrawList *draw_list);
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 
-//struct GameStateMenuOptions
-//{
-//
-//};
+struct GameStateCredits
+{
+	r32 time_open;
+	r32 time_out;
+};
 
+// ------------------------------------------------------------------------------------------------
+
+#define GS_CREDITS_TIME_FADE_IN   .5f
+#define GS_CREDITS_TIME_FADE_OUT  .5f
+
+// ------------------------------------------------------------------------------------------------
+
+bool gs_creditsBegin(ztGame *game);
+bool gs_creditsUpdate(ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse);
+void gs_creditsRender(ztGame *game, ztDrawList *draw_list);
 
 
 // ------------------------------------------------------------------------------------------------

@@ -28,6 +28,7 @@ struct GameTypeArcade
 	bool             ignore_input;
 
 	GameStateMenu    *game_state_menu;
+	GameStateMenu    *game_over;
 };
 
 

@@ -26,6 +26,7 @@
     <None Include="..\..\..\src\game_state_menu_options.cpp" />
     <None Include="..\..\..\src\game_state_playing.cpp" />
     <None Include="..\..\..\src\game_state_menu.cpp" />
+    <None Include="..\..\..\src\game_state_credits.cpp" />
     <ClCompile Include="..\..\..\src\unity_dll.cpp" />
     <None Include="..\..\..\src\main_dll.cpp" />
   </ItemGroup>

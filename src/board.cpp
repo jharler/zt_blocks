@@ -8,6 +8,14 @@
 
 // ------------------------------------------------------------------------------------------------
 
+ztInternal void _boardSetState(Board *board, BoardState_Enum state)
+{
+	board->current_state = state;
+	board->current_state_time = 0;
+}
+
+// ------------------------------------------------------------------------------------------------
+
 ztInternal void _boardGetBlockPieces_GM(BlockType_Enum block, int rotation, i8 *pieces)
 {
 	switch (block)
@@ -660,6 +668,11 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 			if (board->active_block == BlockType_I && block_point.x == 0 && board->active_block_pos_col == 2) {
 				int idx_right = _boardIndexFromPoint(board, block_point.x + 2, block_point.y);
 				if (_boardIsValidBlockPosition(board, idx_right, board->active_block_pos_col, board->active_block, new_rotation)) {
+
+					if (!_boardIsValidBlockPosition(board, idx_right, 0, board->active_block, new_rotation)) {
+						_boardIsValidBlockPosition(board, idx_right, board->active_block_pos_col, board->active_block, new_rotation);
+					}
+
 					board->active_block_pos_col  = 0;
 					board->active_block_rotation = new_rotation;
 					result = true;
@@ -671,6 +684,11 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 			if (board->active_block == BlockType_I && block_point.x == board->board_size.x - 2) {
 				int idx_left = _boardIndexFromPoint(board, block_point.x - 2, block_point.y);
 				if (_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col, board->active_block, new_rotation)) {
+
+					if (!_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col - 1, board->active_block, new_rotation)) {
+						_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col, board->active_block, new_rotation);
+					}
+
 					if (board->active_block_pos_col > 0) {
 						board->active_block_pos_col -= 1;
 					}
@@ -684,6 +702,27 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 			}
 		}
 
+		if (!result) {
+			// check to the top
+			int idx_up = _boardIndexFromPoint(board, block_point.x, block_point.y - 1);
+			if (_boardIsValidBlockPosition(board, idx_up, board->active_block_pos_col, board->active_block, new_rotation)) {
+				board->active_block_pos_idx = idx_up;
+				board->active_block_rotation = new_rotation;
+				result = true;
+			}
+
+		}
+
+		if (!result) {
+			if (board->active_block == BlockType_I) {
+				int idx_up = _boardIndexFromPoint(board, block_point.x, block_point.y - 2);
+				if (_boardIsValidBlockPosition(board, idx_up, board->active_block_pos_col, board->active_block, new_rotation)) {
+					board->active_block_pos_idx = idx_up;
+					board->active_block_rotation = new_rotation;
+					result = true;
+				}
+			}
+		}
 	}
 
 	if (result && board->time_to_lock_soft > 0) {
@@ -954,10 +993,11 @@ ztInternal void _boardCycleBlocks(Board *board, int max_next, BlockType_Enum nex
 	_boardGetBlockPieces(board->rotation_system, next, 0, pieces);
 
 	if (!_boardIsValidBlockPosition(board, board->active_block_pos_idx, board->active_block_pos_col, next, board->active_block_rotation)) {
-		board->current_state = BoardState_Failed;
+		board->active_block = BlockType_Invalid;
+		_boardSetState(board, BoardState_Dying);
 	}
 	else {
-		board->current_state = BoardState_Falling;
+		_boardSetState(board, BoardState_Falling);
 	}
 }
 
@@ -1008,9 +1048,10 @@ ztInternal void _boardProcessBlockLock(Board *board, r32 dt)
 			}
 
 			board->active_block      = BlockType_Invalid;
-			board->current_state     = BoardState_Processing;
 			board->time_to_lock_soft = 0;
 			board->time_to_lock_hard = 0;
+
+			_boardSetState(board, BoardState_Processing);
 
 			if (board->audio_block_drop != ztInvalidID) {
 				zt_audioClipPlayOnce(board->audio_block_drop);
@@ -1047,9 +1088,9 @@ ztInternal void _boardCheckForLines(Board *board, BoardRules *rules)
 
 		bool found_empty = false;
 		zt_fjz(board->board_size.x) {
-			int x = j + start;
+			int idx = j + start;
 
-			if (board->board[x] == 0) {
+			if (board->board[idx] == 0) {
 				found_empty = true;
 				break;
 			}
@@ -1057,11 +1098,16 @@ ztInternal void _boardCheckForLines(Board *board, BoardRules *rules)
 
 		if (!found_empty) {
 			board->lines_clearing[cleared_lines++] = i;
+
+			zt_fjz(board->board_size.x) {
+				int idx = j + start;
+				board->board[idx] = BlockType_Clearing;
+			}
 		}
 	}
 
 	if (cleared_lines > 0) {
-		board->current_state = BoardState_Clearing;
+		_boardSetState(board, BoardState_Clearing);
 		board->time_to_clear = rules->clear_time;
 
 		if (board->audio_line_clear[cleared_lines - 1] != ztInvalidID) {
@@ -1070,7 +1116,7 @@ ztInternal void _boardCheckForLines(Board *board, BoardRules *rules)
 
 	}
 	else {
-		board->current_state = BoardState_Waiting;
+		_boardSetState(board, BoardState_Waiting);
 	}
 }
 
@@ -1106,13 +1152,13 @@ ztInternal void _boardClearLines(Board *board, r32 dt)
 			board->stats.clears[cleared - 1] += 1;
 		}
 
-		board->current_state = BoardState_Waiting;
+		_boardSetState(board, BoardState_Waiting);
 	}
 }
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardRenderBlockPiece(BlockType_Enum block, ztDrawList *draw_list, ztVec2 position)
+ztInternal void _boardRenderBlockPiece(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, ztVec2 position)
 {
 	ztVec4 color = ztVec4::one;
 	switch (block)
@@ -1125,7 +1171,15 @@ ztInternal void _boardRenderBlockPiece(BlockType_Enum block, ztDrawList *draw_li
 		case BlockType_S: color = ztVec4(146 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
 		case BlockType_Z: color = ztVec4(255 / 255.f, 146 / 255.f, 146 / 255.f, 1); break;
 
-		case BlockType_Invalid: color = ztVec4(1,1,1, .25f); break;
+		case BlockType_None: {
+			r32 osc = zt_linearRemap(zt_sin(board->current_state_time * 6), -1, 1, 0, 1);
+			color = ztVec4::lerp(ztVec4(.5f, .5f, .5f, 1), ztVec4(.45f, .45f, .45f, 1), osc);
+		} break;
+
+		case BlockType_Clearing: {
+			color = ztVec4(1, 1, 1, zt_lerp(0.f, 1.f, board == nullptr || rules == nullptr ? 0 : board->time_to_clear / rules->clear_time));
+		} break;
+
 		default: color = ztVec4(.5f, .5f, .5f, .25f); 
 	}
 
@@ -1138,7 +1192,7 @@ ztInternal void _boardRenderBlockPiece(BlockType_Enum block, ztDrawList *draw_li
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardRenderBlockPiece(Board *board, BlockType_Enum block, ztDrawList *draw_list, int at_index)
+ztInternal void _boardRenderBlockPiece(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, int at_index)
 {
 	ztVec2 pos(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));
 
@@ -1147,12 +1201,12 @@ ztInternal void _boardRenderBlockPiece(Board *board, BlockType_Enum block, ztDra
 	pos.x += point.x * .5f;
 	pos.y -= point.y * .5f;
 
-	_boardRenderBlockPiece(block, draw_list, pos);
+	_boardRenderBlockPiece(board, rules, block, draw_list, pos);
 }
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardRenderBlock(Board *board, BlockType_Enum block, ztDrawList *draw_list, int at_index, int col_adjust, int rotation)
+ztInternal void _boardRenderBlock(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, int at_index, int col_adjust, int rotation)
 {
 	i8 pieces[16];
 	_boardGetBlockPieces(board->rotation_system, block, rotation, pieces);
@@ -1169,7 +1223,7 @@ ztInternal void _boardRenderBlock(Board *board, BlockType_Enum block, ztDrawList
 			if (pieces[pidx] != 0) {
 				int idx = _boardIndexAdjust(board, at_index, x - col_adjust, y);
 				if (idx != -1 && idx >= min_idx) {
-					_boardRenderBlockPiece(board, block, draw_list, idx);
+					_boardRenderBlockPiece(board, rules, block, draw_list, idx);
 				}
 			}
 			//else if(pidx != 0) {
@@ -1223,6 +1277,8 @@ Board boardMake(int width, int height, BoardRandomizer_Enum randomizer, BoardRot
 		board.audio_line_clear[i] = ztInvalidID;
 	}
 
+	board.camera_shake = zt_cameraShakeMake(BOARD_CAMERA_SHAKE_DURATION, BOARD_CAMERA_SHAKE_SPEED, BOARD_CAMERA_SHAKE_INTENSITY, 123456);
+
 	return board;
 }
 
@@ -1246,7 +1302,7 @@ void boardReset(Board *board)
 	}
 
 	board->active_block = BlockType_Invalid;
-	board->current_state = BoardState_Waiting;
+	_boardSetState(board, BoardState_Waiting);
 
 	board->hold = BlockType_Invalid;
 
@@ -1319,6 +1375,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 	zt_returnValOnNull(board, BoardState_Invalid);
 
 	board->stats.time_played += dt;
+	board->current_state_time += dt;
 
 	if (board->current_state == BoardState_Waiting && board->active_block == BlockType_Invalid) {
 		_boardCycleBlocks(board, rules->max_next, _boardGetNextBlock(board, rules));
@@ -1335,7 +1392,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 	if (board->current_state == BoardState_Clearing) {
 		_boardClearLines(board, dt);
 	}
-	else {
+	else if(board->current_state != BoardState_Dying) {
 		bool pressed[BoardInput_MAX];
 		bool repeating[BoardInput_MAX];
 		zt_fize(pressed) {
@@ -1397,6 +1454,8 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 							board->time_to_drop = rules->drop_time;
 							board->hard_drop = true;
 							board->stats.hard_drops += 1;
+
+							zt_cameraShakeStart(&board->camera_shake);
 						}
 					} break;
 
@@ -1441,19 +1500,35 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 			_boardProcessBlockLock(board, dt);
 		}
 	}
+	else {
+		if (board->current_state_time > BOARD_GAME_OVER_TIME) {
+			//if(inputs_count > 0) {
+			//	_boardSetState(board, BoardState_Failed);
+			//}
+		}
+		else {
+			int blocks_filled = zt_convertToi32Ceil((board->board_size.x * board->board_size.y) * (board->current_state_time / BOARD_GAME_OVER_TIME));
+			zt_fiz(blocks_filled) {
+				int idx = (board->board_size.x * board->board_size.y) - (i + 1);
+				board->board[idx] = BlockType_None;
+			}
+		}
+	}
+
+	zt_cameraShakeUpdate(&board->camera_shake, dt);
 
 	return BoardState_Falling;
 }
 
 // ------------------------------------------------------------------------------------------------
 
-void boardRender(Board *board, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost)
+void boardRender(Board *board, BoardRules *rules, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost)
 {
 	// draw the ghost block where the hard drop would go
 	if (tex_block_ghost != ztInvalidID) {
 		zt_drawListPushTexture(draw_list, tex_block_ghost);
 		{
-			_boardRenderBlock(board, board->active_block, draw_list, _boardGetBlockHardDropPositionIndex(board), board->active_block_pos_col, board->active_block_rotation);
+			_boardRenderBlock(board, rules, board->active_block, draw_list, _boardGetBlockHardDropPositionIndex(board), board->active_block_pos_col, board->active_block_rotation);
 		}
 		zt_drawListPopTexture(draw_list);
 	}
@@ -1461,18 +1536,20 @@ void boardRender(Board *board, ztDrawList *draw_list, ztTextureID tex_block, ztT
 	zt_drawListPushTexture(draw_list, tex_block);
 	{
 		// draw the board
+		int min = board->board_size.x * 2;
+
 		zt_fiz(board->board_size.x * board->board_size.y) {
-			if (board->board[i] == 0) {
+			if (i < min || board->board[i] == BlockType_Invalid) {
 				//_boardRenderBlockPiece(board, BlockType_MAX, draw_list, i);
 				continue;
 			}
 
 			i16 board_piece = board->board[i];
-			_boardRenderBlockPiece(board, (BlockType_Enum)board_piece, draw_list, i);
+			_boardRenderBlockPiece(board, rules, (BlockType_Enum)board_piece, draw_list, i);
 		}
 
 		if (board->active_block != BlockType_Invalid) {
-			_boardRenderBlock(board, board->active_block, draw_list, board->active_block_pos_idx, board->active_block_pos_col, board->active_block_rotation);
+			_boardRenderBlock(board, rules, board->active_block, draw_list, board->active_block_pos_idx, board->active_block_pos_col, board->active_block_rotation);
 		}
 	}
 	zt_drawListPopTexture(draw_list);
@@ -1506,7 +1583,7 @@ void boardRenderBlock(BoardRotationSystem_Enum rotation_system, BlockType_Enum b
 				int y = j;
 				int pidx = (y * 4) + x;
 				if (pieces[pidx] != 0) {
-					_boardRenderBlockPiece(block, draw_list, position + ztVec2(x / 2.f, y / -2.f));
+					_boardRenderBlockPiece(nullptr, nullptr, block, draw_list, position + ztVec2(x / 2.f, y / -2.f));
 				}
 			}
 		}

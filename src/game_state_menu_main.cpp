@@ -6,6 +6,7 @@ enum GameStateMenuMainItems_Enum
 {
 	GameStateMenuMainItems_PlayArcade,
 	GameStateMenuMainItems_Options,
+	GameStateMenuMainItems_Credits,
 	GameStateMenuMainItems_Exit,
 
 	GameStateMenuMainItems_MAX,
@@ -16,9 +17,66 @@ enum GameStateMenuMainItems_Enum
 ztInternal char *_gs_menuMainItems[GameStateMenuMainItems_MAX] = {
 	"Play",
 	"Options",
+	"Credits",
 	"Exit",
 };
 
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+
+enum GameStateMenuOptionsItems_Enum
+{
+//	GameStateMenuOptionsItems_Music,
+	GameStateMenuOptionsItems_Sound,
+	GameStateMenuOptionsItems_Fullscreen,
+	GameStateMenuOptionsItems_Back,
+
+	GameStateMenuOptionsItems_MAX,
+};
+
+// ------------------------------------------------------------------------------------------------
+
+ztInternal char *_gs_menuOptionsItems[GameStateMenuOptionsItems_MAX] = {
+//	"Music",
+	"Sound",
+	"Fullscreen",
+	"Back to Main Menu"
+};
+
+// ------------------------------------------------------------------------------------------------
+
+ztInternal GameStateMenuOptionType_Enum _gs_menuOptionsTypes[GameStateMenuOptionsItems_MAX] = {
+//	GameStateMenuOptionType_Bool,
+	GameStateMenuOptionType_Bool,
+	GameStateMenuOptionType_Bool,
+	GameStateMenuOptionType_None,
+};
+
+// ------------------------------------------------------------------------------------------------
+
+ztInternal char *_gs_menuOptionsKeys[GameStateMenuOptionsItems_MAX] = {
+//	"music",
+	"sound",
+	"fullscreen",
+	"",
+};
+
+// ------------------------------------------------------------------------------------------------
+
+ztInternal char *_gs_menuOptionsKeysDefaults[GameStateMenuOptionsItems_MAX] = {
+//	"true",
+	"true",
+	"false",
+	"",
+};
+
+// ------------------------------------------------------------------------------------------------
+
+ztInternal char _gs_iniFile[ztFileMaxPath] = { 0 };
+
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 
 ztInternal void _gs_menuMainLocateOption(int item_idx, ztVec2 *position, ztVec2 *size)
@@ -41,16 +99,42 @@ bool gs_menuMainBegin(ztGame *game)
 {
 	game->game_state_main_menu.time_open = 0;
 	game->game_state_main_menu.time_out = 0;
-
-	game->game_state_main_menu.tex_logo = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/zt_blocks_logo.png"));
-	if (game->game_state_main_menu.tex_logo == ztInvalidID) {
-		return false;
-	}
+	game->game_state_main_menu.in_options = false;
 
 	gs_menuSetOptions(&game->game_state_main_menu.gs_menu, _gs_menuMainItems, zt_elementsOf(_gs_menuMainItems));
-
 	game->game_state_main_menu.gs_menu.flags |= GameStateMenuFlags_LargeText | GameStateMenuFlags_Pointer | GameStateMenuFlags_AlignLeft | GameStateMenuFlags_BoxActive;
 	gs_menuBegin(&game->game_state_main_menu.gs_menu);
+
+	if (_gs_iniFile[0] == 0) {
+		char ini_file_path[ztFileMaxPath];
+		zt_fileGetAppPath(ini_file_path, ztFileMaxPath);
+		zt_fileConcatFileToPath(_gs_iniFile, ztFileMaxPath, ini_file_path, "settings.cfg");
+	}
+
+	game->game_state_main_menu.gs_options_menu_options = zt_mallocStructArray(GameStateMenuOption, zt_elementsOf(_gs_menuOptionsTypes));
+	zt_fize(_gs_menuOptionsTypes) {
+		game->game_state_main_menu.gs_options_menu_options[i].type = _gs_menuOptionsTypes[i];
+
+		switch (_gs_menuOptionsTypes[i])
+		{
+			case GameStateMenuOptionType_Bool: {
+				char value[128];
+				zt_iniFileGetValue(_gs_iniFile, "general", _gs_menuOptionsKeys[i], _gs_menuOptionsKeysDefaults[i], value, zt_elementsOf(value));
+				game->game_state_main_menu.gs_options_menu_options[i].val_bool = zt_strEquals(value, "true", false);
+
+				switch (i)
+				{
+					case GameStateMenuOptionsItems_Sound: {
+						zt_audioSetMute(!game->game_state_main_menu.gs_options_menu_options[i].val_bool);
+					} break;
+				}
+
+			} break;
+		}
+	}
+
+	gs_menuSetOptions(&game->game_state_main_menu.gs_options_menu, _gs_menuOptionsItems, zt_elementsOf(_gs_menuOptionsItems), game->game_state_main_menu.gs_options_menu_options);
+	game->game_state_main_menu.gs_options_menu.flags = GameStateMenuFlags_AlignLeft | GameStateMenuFlags_BoxActive;
 
 	return true;
 }
@@ -60,33 +144,76 @@ bool gs_menuMainBegin(ztGame *game)
 void gs_menuMainCleanup(ztGame *game)
 {
 	gs_menuFreeOptions(&game->game_state_main_menu.gs_menu);
-	zt_textureFree(game->game_state_main_menu.tex_logo);
+	gs_menuFreeOptions(&game->game_state_main_menu.gs_options_menu);
+	zt_free(game->game_state_main_menu.gs_options_menu_options);
 }
 
 // ------------------------------------------------------------------------------------------------
 
 bool gs_menuMainUpdate(ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse)
 {
-	if (gs_menuUpdate(&game->game_state_main_menu.gs_menu, game, dt, input_this_frame, input_keys, input_controller, input_mouse, GS_MENU_MAIN_OFFSET) == GameStateMenuResult_Selected) {
-		switch (game->game_state_main_menu.gs_menu.active_option)
-		{
-			case GameStateMenuMainItems_PlayArcade: {
-				game->game_state_main_menu.next_state = GameState_Playing;
-				game->game_state_main_menu.time_out = GS_MENU_MAIN_TIME_FADE_OUT;
-			} break;
+	if (!game->game_state_main_menu.in_options) {
+		if (gs_menuUpdate(&game->game_state_main_menu.gs_menu, game, dt, input_this_frame, input_keys, input_controller, input_mouse, GS_MENU_MAIN_OFFSET) == GameStateMenuResult_Selected) {
+			switch (game->game_state_main_menu.gs_menu.active_option)
+			{
+				case GameStateMenuMainItems_PlayArcade: {
+					game->game_state_main_menu.next_state = GameState_Playing;
+					game->game_state_main_menu.time_out = GS_MENU_MAIN_TIME_FADE_OUT;
+				} break;
 
-			case GameStateMenuMainItems_Options: {
-			} break;
+				case GameStateMenuMainItems_Options: {
+					game->game_state_main_menu.in_options = true;
+					game->game_state_main_menu.options_transition_time = GS_MENU_MAIN_TIME_FADE_OUT;
 
-			case GameStateMenuMainItems_Exit: {
-				game->game_state_main_menu.next_state = GameState_Invalid;
-				game->game_state_main_menu.time_out = GS_MENU_MAIN_TIME_FADE_OUT;
-				return true;
-			} break;
+					gs_menuBegin(&game->game_state_main_menu.gs_options_menu);
+				} break;
+
+				case GameStateMenuMainItems_Credits: {
+					game->game_state_main_menu.next_state = GameState_Credits;
+					game->game_state_main_menu.time_out = GS_MENU_MAIN_TIME_FADE_OUT;
+				} break;
+
+				case GameStateMenuMainItems_Exit: {
+					game->game_state_main_menu.next_state = GameState_Invalid;
+					game->game_state_main_menu.time_out = GS_MENU_MAIN_TIME_FADE_OUT;
+					return true;
+				} break;
+			}
 		}
 	}
+	else {
+		if (gs_menuUpdate(&game->game_state_main_menu.gs_options_menu, game, dt, input_this_frame, input_keys, input_controller, input_mouse, GS_MENU_MAIN_OFFSET) == GameStateMenuResult_Selected) {
 
+			int opt = game->game_state_main_menu.gs_options_menu.active_option;
+			switch (opt)
+			{
+				//case GameStateMenuOptionsItems_Music:
+				case GameStateMenuOptionsItems_Sound:
+				case GameStateMenuOptionsItems_Fullscreen: {
+					zt_iniFileSetValue(_gs_iniFile, "general", _gs_menuOptionsKeys[opt], game->game_state_main_menu.gs_options_menu_options[opt].val_bool ? "true" : "false");
+				} break;
+			}
+
+			switch (game->game_state_main_menu.gs_options_menu.active_option)
+			{
+				//case GameStateMenuOptionsItems_Music:
+				case GameStateMenuOptionsItems_Sound: {
+					zt_audioSetMute(!game->game_state_main_menu.gs_options_menu_options[opt].val_bool);
+				} break;
+
+				case GameStateMenuOptionsItems_Back: {
+					game->game_state_main_menu.in_options = false;
+					game->game_state_main_menu.options_transition_time = GS_MENU_MAIN_TIME_FADE_OUT;
+					return true;
+				} break;
+			}
+		}
+	}
 	game->game_state_main_menu.time_open += dt;
+
+	if (game->game_state_main_menu.options_transition_time > 0) {
+		game->game_state_main_menu.options_transition_time -= dt;
+	}
 
 	if (game->game_state_main_menu.time_out > 0) {
 		game->game_state_main_menu.time_out -= dt;
@@ -119,11 +246,38 @@ void gs_menuMainRender(ztGame *game, ztDrawList *draw_list)
 	zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, ztVec2::zero, ztVec2::one);
 	zt_drawListPopTexture(draw_list);
 
-	zt_drawListPushTexture(draw_list, game->game_state_main_menu.tex_logo);
+	zt_drawListPushTexture(draw_list, game->tex_logo);
 	zt_drawListAddFilledRect2D(draw_list, GS_MENU_LOGO_POSITION, GS_MENU_LOGO_SIZE, ztVec2::zero, ztVec2::one);
 	zt_drawListPopTexture(draw_list);
 
-	gs_menuRender(&game->game_state_main_menu.gs_menu, game, draw_list, GS_MENU_MAIN_OFFSET);
+	ztVec2 offset_main_offscreen = ztVec2(-20, 0);
+	ztVec2 offset_options_offscreen = ztVec2(20, 0);
+
+	ztVec2 offset_main = ztVec2::zero;
+	ztVec2 offset_options = ztVec2(-4, 0);
+
+	if (game->game_state_main_menu.options_transition_time > 0) {
+		r32 pct = 1 - (game->game_state_main_menu.options_transition_time / GS_MENU_MAIN_TIME_FADE_OUT);
+		if (game->game_state_main_menu.in_options) {
+			offset_main = ztVec2::lerp(ztVec2::zero, offset_main_offscreen, pct);
+			offset_options = ztVec2::lerp(offset_options_offscreen, offset_options, pct);
+		}
+		else {
+			offset_main = ztVec2::lerp(offset_main_offscreen, offset_main, pct);
+			offset_options = ztVec2::lerp(ztVec2::zero, offset_options_offscreen, pct);
+		}
+	}
+	else {
+		if (game->game_state_main_menu.in_options) {
+			offset_main = offset_main_offscreen;
+		}
+		else {
+			offset_options = offset_options_offscreen;
+		}
+	}
+
+	gs_menuRender(&game->game_state_main_menu.gs_menu, game, draw_list, GS_MENU_MAIN_OFFSET + offset_main);
+	gs_menuRender(&game->game_state_main_menu.gs_options_menu, game, draw_list, GS_MENU_MAIN_OFFSET + offset_options);
 
 	r32 black_pct = 0;
 

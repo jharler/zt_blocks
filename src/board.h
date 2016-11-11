@@ -8,7 +8,9 @@
 
 enum BlockType_Enum
 {
-	BlockType_Invalid,
+	BlockType_Clearing = -2,
+	BlockType_None     = -1,
+	BlockType_Invalid  = 0,
 
 	BlockType_I,
 	BlockType_O,
@@ -17,6 +19,7 @@ enum BlockType_Enum
 	BlockType_L,
 	BlockType_S,
 	BlockType_Z,
+
 
 	BlockType_MAX,
 };
@@ -61,6 +64,7 @@ enum BoardState_Enum
 	BoardState_Processing,  // block has landed, need to test for line clears
 	BoardState_Clearing,    // lines are being cleared
 	BoardState_Waiting,     // waiting for next block to begin
+	BoardState_Dying,       // player has failed, processing game over
 	BoardState_Failed,      // blocks have reached the top
 };
 
@@ -68,6 +72,13 @@ enum BoardState_Enum
 
 #define MAX_NEXT_BLOCKS	3
 #define MAX_PREV_BLOCKS 5
+
+#define BOARD_GAME_OVER_TIME	1
+
+#define BOARD_CAMERA_SHAKE_DURATION  .5f
+#define BOARD_CAMERA_SHAKE_SPEED     .5f
+#define BOARD_CAMERA_SHAKE_INTENSITY .125f
+
 
 // ------------------------------------------------------------------------------------------------
 
@@ -130,6 +141,7 @@ struct Board
 	r32                      input_hold_time[BoardInput_MAX];
 
 	BoardState_Enum          current_state = BoardState_Waiting;
+	r32                      current_state_time = 0;
 
 	bool                     block_has_held;
 	bool                     hard_drop;
@@ -157,6 +169,8 @@ struct Board
 
 
 	BoardStats               stats;
+
+	ztCameraShake            camera_shake;
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -185,7 +199,7 @@ void            boardFree(Board *board);
 void            boardReset(Board *board);
 
 BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_Enum *inputs, int inputs_count);
-void            boardRender(Board *board, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost);
+void            boardRender(Board *board, BoardRules *rules, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost);
 
 void            boardRenderBlock(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, ztDrawList *draw_list, ztVec2 position, int rotation, ztTextureID tex_block);
 

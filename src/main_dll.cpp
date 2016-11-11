@@ -43,7 +43,7 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 	game->settings = settings;
 
 	game->gui_manager = zt_guiManagerMake(&game->camera_2d, nullptr, zt_memGetGlobalArena());
-	//zt_guiInitDebug(game->gui_manager);
+	zt_guiInitDebug(game->gui_manager);
 
 	//game->vr = zt_vrIsHeadsetPresent() ? zt_vrMake() : nullptr;
 
@@ -63,12 +63,14 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 		return false;
 	}
 
-	game->font_primary   = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
-	game->font_huge      = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_huge.fnt"));
-	game->tex_background = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/background.png"));
-	game->tex_zt_logo    = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/zt_logo.png"));
+	game->font_primary     = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_large.fnt"));
+	game->font_huge        = zt_fontMakeFromBmpFontAsset(&game->asset_manager, zt_assetLoad(&game->asset_manager, "fonts/impact_huge.fnt"));
+	game->tex_background   = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/background.png"));
+	game->tex_zt_logo      = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/zt_logo.png"));
+	game->tex_logo         = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/zt_blocks_logo.png"));
+	game->tex_gui_checkbox = zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, "textures/checkbox.png"));
 
-	if (game->font_primary == ztInvalidID || game->tex_background == ztInvalidID || game->tex_zt_logo == ztInvalidID) {
+	if (game->font_primary == ztInvalidID || game->tex_background == ztInvalidID || game->tex_zt_logo == ztInvalidID || game->tex_logo == ztInvalidID || game->tex_gui_checkbox == ztInvalidID) {
 		return false;
 	}
 
@@ -151,6 +153,8 @@ ZT_DLLEXPORT void dll_cleanup(void *memory)
 	zt_fontFree(game->font_huge);
 	zt_textureFree(game->tex_background);
 	zt_textureFree(game->tex_zt_logo);
+	zt_textureFree(game->tex_logo);
+	zt_textureFree(game->tex_gui_checkbox);
 
 	//if(game->vr) {
 	//	if (game->vr->headset.model) {
@@ -219,6 +223,12 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 				}
 			} break;
 
+			case GameState_Credits: {
+				if (!gs_creditsBegin(game)) {
+					return false;
+				}
+			} break;
+
 			case GameState_Playing: {
 				if (!gs_playingBegin(game)) {
 					return false;
@@ -238,6 +248,12 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 
 		case GameState_MenuMain: {
 			if (!gs_menuMainUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+				return false;
+			}
+		} break;
+
+		case GameState_Credits: {
+			if (!gs_creditsUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
 				return false;
 			}
 		} break;
@@ -286,6 +302,10 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 
 			case GameState_MenuMain: {
 				gs_menuMainRender(game, &game->draw_list);
+			} break;
+
+			case GameState_Credits: {
+				gs_creditsRender(game, &game->draw_list);
 			} break;
 
 			case GameState_Playing: {

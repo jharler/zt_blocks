@@ -19,15 +19,15 @@ ztInternal void _gs_menuLocateOption(GameStateMenu *gs_menu, int item_idx, ztVec
 	r32 spacing = 0;
 
 	if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_LargeText)) {
-		spacing = 20 / ppu;
-		size->x = 300 / ppu;
+		spacing = 10 / ppu;
 		size->y = 105 / ppu;
 	}
 	else {
 		spacing = 30 / ppu;
-		size->x = 300 / ppu;
 		size->y = 55 / ppu;
 	}
+
+	size->x = zt_max(300 / ppu, gs_menu->max_width + spacing);
 
 	r32 total_height = (size->y * gs_menu->options_count) + (spacing * (gs_menu->options_count - 1));
 
@@ -37,9 +37,11 @@ ztInternal void _gs_menuLocateOption(GameStateMenu *gs_menu, int item_idx, ztVec
 
 // ------------------------------------------------------------------------------------------------
 
-void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count)
+void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count, GameStateMenuOption *option_vals)
 {
 	gs_menu->options = zt_mallocStructArray(char*, options_count);
+	gs_menu->max_width = 0;
+
 	zt_fiz(options_count) {
 		int size = zt_strSize(options[i]);
 		gs_menu->options[i] = zt_mallocStructArray(char, size);
@@ -47,6 +49,7 @@ void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count
 	}
 	gs_menu->options_count = options_count;
 	gs_menu->menu_time = 0;
+	gs_menu->option_vals = option_vals;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -109,7 +112,7 @@ GameStateMenuResult_Enum gs_menuUpdate(GameStateMenu *gs_menu, ztGame *game, r32
 			}
 		}
 
-		if (changed) {
+		if (changed && gs_menu->options_count > 1) {
 			if (game->audio_menu_change != ztInvalidID) {
 				zt_audioClipPlayOnce(game->audio_menu_change);
 			}
@@ -122,6 +125,20 @@ GameStateMenuResult_Enum gs_menuUpdate(GameStateMenu *gs_menu, ztGame *game, r32
 
 			if (game->audio_menu_select != ztInvalidID) {
 				zt_audioClipPlayOnce(game->audio_menu_select);
+			}
+
+			if (gs_menu->option_vals) {
+				if (gs_menu->option_vals[gs_menu->active_option].type != GameStateMenuOptionType_None) {
+					switch (gs_menu->option_vals[gs_menu->active_option].type)
+					{
+						case GameStateMenuOptionType_Bool: {
+							gs_menu->option_vals[gs_menu->active_option].val_bool = !gs_menu->option_vals[gs_menu->active_option].val_bool;
+						} break;
+					}
+
+					gs_menu->select_time = 0;
+					return GameStateMenuResult_Selected;
+				}
 			}
 
 			return GameStateMenuResult_Active;
@@ -144,6 +161,14 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 {
 	zt_drawListPushTexture(draw_list, 0);
 
+	if (gs_menu->max_width == 0) {
+		ztFontID font_id = zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_LargeText) ? game->font_huge : game->font_primary;
+		zt_fiz(gs_menu->options_count) {
+			ztVec2 text_ext = zt_fontGetExtents(font_id, gs_menu->options[i]);;
+			gs_menu->max_width = zt_max(gs_menu->max_width, text_ext.x);
+		}
+	}
+
 	if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_Darken)) {
 		zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, .75f));
 		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, zt_cameraOrthoGetViewportSize(&game->camera_2d), ztVec2::zero, ztVec2::one);
@@ -152,7 +177,7 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 
 	if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_Background)) {
 		zt_drawListPushColor(draw_list, ztVec4(1, 0, 0, 1));
-		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, _gs_menuBoxSize(gs_menu->options_count) + ztVec2(.25f, .25f), ztVec2::zero, ztVec2::one);
+		zt_drawListAddFilledRect2D(draw_list, offset, _gs_menuBoxSize(gs_menu->options_count) + ztVec2(.25f, .25f), ztVec2::zero, ztVec2::one);
 		zt_drawListPopColor(draw_list);
 		zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, 1));
 		zt_drawListAddFilledRect2D(draw_list, offset, _gs_menuBoxSize(gs_menu->options_count), ztVec2::zero, ztVec2::one);
@@ -211,6 +236,22 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 		}
 		else {
 			zt_drawListAddText2D(draw_list, font_id, gs_menu->options[i], offset + pos, align, anchor);
+		}
+
+		if (gs_menu->option_vals) {
+			switch (gs_menu->option_vals[i].type)
+			{
+				case GameStateMenuOptionType_Bool: {
+					ztVec3 check_pos(offset.x + pos.x + size.x + (64 / zt_pixelsPerUnit()), offset.y + pos.y, 0);
+					ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztPoint2(0, 0), ztPoint2(64, 64));
+					zt_drawListAddSprite(draw_list, &sprite, check_pos);
+
+					if (gs_menu->option_vals[i].val_bool) {
+						ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztPoint2(64, 0), ztPoint2(64, 64));
+						zt_drawListAddSprite(draw_list, &sprite, check_pos);
+					}
+				} break;
+			}
 		}
 	}
 }

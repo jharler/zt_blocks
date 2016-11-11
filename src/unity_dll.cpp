@@ -26,6 +26,7 @@
 #include "game_state_menu_options.cpp"
 #include "game_state_playing.cpp"
 #include "game_state_menu.cpp"
+#include "game_state_credits.cpp"
 
 
 // --------------------------------------------------------------------------------------------------

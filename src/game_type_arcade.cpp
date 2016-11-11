@@ -109,19 +109,10 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	
 	gta.rules = {};
 	gta.rules.max_next              = 3;
-	gta.rules.clear_time            = .10f;
+	gta.rules.clear_time            = .50f;
 	gta.rules.input_delay_move      = .05f;
 	gta.rules.input_delay_rotation  = .25f;
 	gta.rules.input_delay_hard_drop = 1000;
-
-	ztInternal r32 _gta_drop_times[] = { .5f, .45f, .4f, .35f, .3f, .25f, .2f, .15f, .1f, .05f };
-	ztInternal r32 _gta_lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f, 4.f, 3.5f, 2.5f, 2.0f };
-
-	int idx = zt_min(zt_elementsOf(_gta_drop_times) - 1, 0);
-	gta.rules.drop_time      =_gta_drop_times[idx];
-	gta.rules.drop_time_soft = gta.rules.drop_time * .02f;
-	gta.rules.lock_time_hard = _gta_lock_times[idx];
-	gta.rules.lock_time_soft = gta.rules.lock_time_hard * .2f;
 
 	gta.board_grid   = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/board_grid.png"));
 	gta.block        = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/block.png"));
@@ -150,6 +141,14 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 
 	gs_menuSetOptions(gta.game_state_menu, _gta_pause, zt_elementsOf(_gta_pause));
 
+	gta.game_over = zt_mallocStruct(GameStateMenu);
+	gta.game_over->flags |= GameStateMenuFlags_Background;
+
+	char *game_over[] = {
+		"Game Over"
+	};
+	gs_menuSetOptions(gta.game_over, game_over, 1);
+
 	*gta_ptr = gta;
 
 	zt_debugConsoleAddCommand("stats", "Display stats for current game", console_displayStats_FunctionID, ztInvalidID, gta_ptr);
@@ -164,6 +163,10 @@ void gt_arcadeFree(GameTypeArcade *gta)
 	gs_menuFreeOptions(gta->game_state_menu);
 	zt_free(gta->game_state_menu);
 	gta->game_state_menu = nullptr;
+
+	gs_menuFreeOptions(gta->game_over);
+	zt_free(gta->game_over);
+	gta->game_over = nullptr;
 
 	zt_audioClipFree(gta->board.audio_block_move);
 	zt_audioClipFree(gta->board.audio_block_rotate);
@@ -190,6 +193,15 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 		boardReset(&gta->board);
 	}
 
+	r32 drop_times[] = { .5f, .45f, .4f, .35f, .3f, .25f, .175f, .075f, .05f, .025f, .0125f, .0f };
+	r32 lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f, 4.f, 3.5f, 2.5f, 2.0f, 2.0f, 2.0f };
+
+	int idx = zt_min(zt_elementsOf(drop_times) - 1, zt_convertToi32Floor(gta->board.stats.lines_cleared / 10.f));
+	gta->rules.drop_time      = drop_times[idx];
+	gta->rules.drop_time_soft = gta->rules.drop_time * .02f;
+	gta->rules.lock_time_hard = lock_times[idx];
+	gta->rules.lock_time_soft = gta->rules.lock_time_hard * .2f;
+
 	if (!gta->paused) {
 		BoardInput_Enum inputs[BoardInput_MAX];
 		int inputs_count = 0;
@@ -200,10 +212,10 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 			}
 		}
 		else {
-			if (input_keys[ztInputKeys_A].pressed() || input_controller->pressed(ztInputControllerButton_X)) {
+			if (input_keys[ztInputKeys_A].pressed() || input_controller->pressed(ztInputControllerButton_X) || input_controller->pressed(ztInputControllerButton_A)) {
 				inputs[inputs_count++] = BoardInput_RotateLeft;
 			}
-			if (input_keys[ztInputKeys_D].pressed() || input_keys[ztInputKeys_Up].pressed() || input_controller->pressed(ztInputControllerButton_Y)) {
+			if (input_keys[ztInputKeys_D].pressed() || input_keys[ztInputKeys_Up].pressed() || input_controller->pressed(ztInputControllerButton_Y) || input_controller->pressed(ztInputControllerButton_B)) {
 				inputs[inputs_count++] = BoardInput_RotateRight;
 			}
 			if (input_keys[ztInputKeys_Down].pressed() || input_controller->pressed(ztInputControllerButton_DPadDown)) {
@@ -246,16 +258,23 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 		}
 	}
 
-	if (gta->board.current_state == BoardState_Failed) {
-		return false;
+	if (gta->board.current_state == BoardState_Dying) {
+		if (gs_menuUpdate(gta->game_over, game, dt, input_this_frame, input_keys, input_controller, input_mouse) == GameStateMenuResult_Selected) {
+			return false;
+		}
 	}
+	else {
+		if (gta->board.current_state == BoardState_Failed) {
+			return false;
+		}
 
-	gta->mouse_screen_pos = ztPoint2(input_mouse->screen_x, input_mouse->screen_y);
+		gta->mouse_screen_pos = ztPoint2(input_mouse->screen_x, input_mouse->screen_y);
 
-	if (!gta->paused && input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
-		gta->paused = true;
-		gta->game_state_menu->active_option = 0;
-		gs_menuBegin(gta->game_state_menu);
+		if (!gta->paused && input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
+			gta->paused = true;
+			gta->game_state_menu->active_option = 0;
+			gs_menuBegin(gta->game_state_menu);
+		}
 	}
 
 	return true;
@@ -283,6 +302,8 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 		zt_drawListPopTexture(draw_list);
 	}
 
+	zt_cameraShakePreRender(&gta->board.camera_shake, draw_list);
+
 	r32 game_border = 10 / zt_pixelsPerUnit();
 	r32 header_border = 31 / zt_pixelsPerUnit();
 	ztVec4 area_color_bg(200 / 255.f, 31 / 255.f, 31 / 255.f, 1.f);
@@ -305,8 +326,9 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 	}
 	{
 
-		boardRender(&gta->board, draw_list, gta->block, gta->block_ghost);
+		boardRender(&gta->board, &gta->rules, draw_list, gta->block, gta->block_ghost);
 	}
+
 
 	{
 		// draw hold area
@@ -358,6 +380,13 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 		zt_strNumberToString(score_str, zt_elementsOf(score_str), (i64)score);
 		zt_drawListAddText2D(draw_list, gta->font_large, score_str, ztVec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
 	}
+
+	if (gta->board.current_state == BoardState_Dying) {
+		ztVec2 pos = ztVec2::lerp(ztVec2(0, -8), ztVec2(0, 3), zt_min(1, gta->board.current_state_time / BOARD_GAME_OVER_TIME));
+		gs_menuRender(gta->game_over, game, draw_list, pos);
+	}
+
+	zt_cameraShakePostRender(&gta->board.camera_shake, draw_list);
 
 	if(false){
 		ztVec2 pos(-2.25, 4.5f);

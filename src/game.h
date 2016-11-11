@@ -36,6 +36,7 @@ struct ztGame
 
 	GameStateIntro       game_state_intro;
 	GameStateMenuMain    game_state_main_menu;
+	GameStateCredits     game_state_credits;
 	GameStatePlaying     game_state_playing;
 
 	ztFontID             font_primary;
@@ -43,6 +44,8 @@ struct ztGame
 
 	ztTextureID          tex_background;
 	ztTextureID          tex_zt_logo;
+	ztTextureID          tex_logo;
+	ztTextureID          tex_gui_checkbox;
 
 	ztAudioClipID        audio_menu_change;
 	ztAudioClipID        audio_menu_select;
