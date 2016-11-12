@@ -1,6 +1,7 @@
 #include "game_type_arcade.h"
 #include "zt_game_gui.h"
 
+
 // ------------------------------------------------------------------------------------------------
 
 enum GameTypeArcadePause_Enum
@@ -115,12 +116,10 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	gta.rules.input_delay_hard_drop = 1000;
 
 	gta.board_grid   = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/board_grid.png"));
-	gta.block        = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/block.png"));
-	gta.block_ghost  = zt_textureMake(asset_manager, zt_assetLoad(asset_manager, "textures/block_ghost.png"));
 	gta.font_primary = zt_fontMakeFromBmpFontAsset(asset_manager, zt_assetLoad(asset_manager, "fonts/impact.fnt"));
 	gta.font_large   = zt_fontMakeFromBmpFontAsset(asset_manager, zt_assetLoad(asset_manager, "fonts/impact_large.fnt"));
 
-	if (gta.board_grid == ztInvalidID || gta.block == ztInvalidID || gta.font_primary == ztInvalidID || gta.font_large == ztInvalidID) {
+	if (gta.board_grid == ztInvalidID || gta.font_primary == ztInvalidID || gta.font_large == ztInvalidID) {
 		return false;
 	}
 
@@ -132,6 +131,10 @@ bool gt_arcadeMake(GameTypeArcade *gta_ptr, ztAssetManager *asset_manager)
 	zt_fize(gta.board.audio_line_clear) {
 		zt_strMakePrintf(clip, 128, "audio/line_clear_%d.wav", i + 1);
 		gta.board.audio_line_clear[i] = zt_audioClipMake(asset_manager, zt_assetLoad(asset_manager, clip));
+	}
+
+	if (!boardRenderer2dMake(&gta.board_renderer2d, &gta.board, asset_manager)) {
+		return false;
 	}
 
 	gta.paused = false;
@@ -177,10 +180,9 @@ void gt_arcadeFree(GameTypeArcade *gta)
 	}
 
 	boardFree(&gta->board);
+	boardRenderer2dFree(&gta->board_renderer2d);
 
 	zt_textureFree(gta->board_grid);
-	zt_textureFree(gta->block);
-	zt_textureFree(gta->block_ghost);
 	zt_fontFree(gta->font_primary);
 	zt_fontFree(gta->font_large);
 }
@@ -236,6 +238,7 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 		}
 
 		boardUpdate(&gta->board, dt, &gta->rules, inputs, inputs_count);
+		boardRenderer2dUpdate(&gta->board_renderer2d, &gta->board, &gta->rules, dt);
 	}
 	else {
 		if (gs_menuUpdate(gta->game_state_menu, game, dt, input_this_frame, input_keys, input_controller, input_mouse) == GameStateMenuResult_Selected) {
@@ -325,8 +328,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 		zt_drawListPopTexture(draw_list);
 	}
 	{
-
-		boardRender(&gta->board, &gta->rules, draw_list, gta->block, gta->block_ghost);
+		boardRenderer2dRender(&gta->board_renderer2d, &gta->board, &gta->rules, draw_list, ztVec2::zero);
 	}
 
 
@@ -335,7 +337,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 		_gta_drawLabeledArea(draw_list, gta->font_primary, "Hold", ztVec3(-3.25f, 4.76f, 0), ztVec2(2.5f, 2.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		if (gta->board.hold != BlockType_Invalid) {
-			boardRenderBlock(gta->board.rotation_system, gta->board.hold, draw_list, ztVec2(-4.5f, 3.5f), 0, gta->block);
+			boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.hold, draw_list, ztVec2(-4.5f, 3.5f), 0);
 		}
 	}
 
@@ -345,7 +347,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 
 		zt_fiz(gta->rules.max_next) {
 			if (gta->board.next[i] != BlockType_Invalid) {
-				boardRenderBlock(gta->board.rotation_system, gta->board.next[i], draw_list, ztVec2(4.5f, 3.5f - (i * 2.5f)), 0, gta->block);
+				boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.next[i], draw_list, ztVec2(4.5f, 3.5f - (i * 2.5f)), 0);
 			}
 		}
 	}

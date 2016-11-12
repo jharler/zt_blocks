@@ -27,6 +27,7 @@
     <None Include="..\..\..\src\game_state_playing.cpp" />
     <None Include="..\..\..\src\game_state_menu.cpp" />
     <None Include="..\..\..\src\game_state_credits.cpp" />
+    <None Include="..\..\..\src\board_renderer_2d.cpp" />
     <ClCompile Include="..\..\..\src\unity_dll.cpp" />
     <None Include="..\..\..\src\main_dll.cpp" />
   </ItemGroup>
@@ -49,6 +50,7 @@
     <ClInclude Include="..\..\..\..\ZeroTolerance\zt_vr.h" />
     <None Include="..\..\..\src\game_state.h" />
     <None Include="..\..\..\src\game.h" />
+    <None Include="..\..\..\src\board_renderer_2d.h" />
     <ClInclude Include="..\..\..\src\game_type.h" />
     <None Include="..\..\..\src\game_type_arcade.h" />
   </ItemGroup>

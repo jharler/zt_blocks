@@ -2,6 +2,7 @@
 #define __game_type_arcade_h__
 
 #include "board.h"
+#include "board_renderer_2d.h"
 #include "game_type.h"
 
 
@@ -17,13 +18,13 @@ struct GameTypeArcade
 	bool             paused;
 
 	ztTextureID      board_grid;
-	ztTextureID      block;
-	ztTextureID      block_ghost;
 
 	ztFontID         font_primary;
 	ztFontID         font_large;
 
 	ztPoint2         mouse_screen_pos;
+
+	BoardRenderer2d  board_renderer2d;
 
 	bool             ignore_input;
 

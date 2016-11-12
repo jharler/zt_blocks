@@ -79,6 +79,8 @@ enum BoardState_Enum
 #define BOARD_CAMERA_SHAKE_SPEED     .5f
 #define BOARD_CAMERA_SHAKE_INTENSITY .125f
 
+#define BOARD_TOP_BUFFER_COUNT 2
+
 
 // ------------------------------------------------------------------------------------------------
 
@@ -146,7 +148,6 @@ struct Board
 	bool                     block_has_held;
 	bool                     hard_drop;
 
-
 	BoardRandomizer_Enum     randomizer_type = BoardRandomizer_Pool;
 	ztRandom                 randomizer;
 
@@ -199,10 +200,12 @@ void            boardFree(Board *board);
 void            boardReset(Board *board);
 
 BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_Enum *inputs, int inputs_count);
-void            boardRender(Board *board, BoardRules *rules, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost);
 
-void            boardRenderBlock(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, ztDrawList *draw_list, ztVec2 position, int rotation, ztTextureID tex_block);
 
+void            boardGetBlockPieces(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, int rotation, i8 *pieces);
+ztPoint2        boardPointFromIndex(Board *board, int index, int col_adjust);
+int             boardIndexAdjust(Board *board, int from_idx, int x, int y);
+int             boardGetBlockHardDropPositionIndex(Board *board);
 
 // ------------------------------------------------------------------------------------------------
 

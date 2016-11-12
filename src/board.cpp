@@ -4,10 +4,6 @@
 
 // ------------------------------------------------------------------------------------------------
 
-#define BOARD_TOP_BUFFER_COUNT 2
-
-// ------------------------------------------------------------------------------------------------
-
 ztInternal void _boardSetState(Board *board, BoardState_Enum state)
 {
 	board->current_state = state;
@@ -16,7 +12,7 @@ ztInternal void _boardSetState(Board *board, BoardState_Enum state)
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardGetBlockPieces_GM(BlockType_Enum block, int rotation, i8 *pieces)
+ztInternal void boardGetBlockPieces_GM(BlockType_Enum block, int rotation, i8 *pieces)
 {
 	switch (block)
 	{
@@ -270,7 +266,7 @@ ztInternal void _boardGetBlockPieces_GM(BlockType_Enum block, int rotation, i8 *
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardGetBlockPieces_SRS(BlockType_Enum block, int rotation, i8 *pieces)
+ztInternal void boardGetBlockPieces_SRS(BlockType_Enum block, int rotation, i8 *pieces)
 {
 	switch (block)
 	{
@@ -540,35 +536,6 @@ ztInternal void _boardGetBlockPieces_SRS(BlockType_Enum block, int rotation, i8 
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal void _boardGetBlockPieces(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, int rotation, i8 *pieces)
-{
-	switch (rotation_system)
-	{
-		case BoardRotationSystem_GM: {
-			_boardGetBlockPieces_GM(block, rotation, pieces);
-			return;
-		} 
-
-		case BoardRotationSystem_SRS: {
-			_boardGetBlockPieces_SRS(block, rotation, pieces);
-			return;
-		}
-
-		default: zt_assert(false);
-	}
-}
-// ------------------------------------------------------------------------------------------------
-
-ztInternal ztPoint2 _boardPointFromIndex(Board *board, int index, int col_adjust)
-{
-	int y = zt_convertToi32Floor(index / (r32)board->board_size.x);
-	int x = index - (y * board->board_size.x);
-
-	return ztPoint2(x - col_adjust, y);
-}
-
-// ------------------------------------------------------------------------------------------------
-
 ztInternal int _boardIndexFromPoint(Board *board, int x, int y)
 {
 	if (x < 0 || x >= board->board_size.x || y < 0 || y >= board->board_size.y) {
@@ -580,29 +547,14 @@ ztInternal int _boardIndexFromPoint(Board *board, int x, int y)
 
 // ------------------------------------------------------------------------------------------------
 
-ztInternal int _boardIndexAdjust(Board *board, int from_idx, int x, int y)
-{
-	ztPoint2 point = _boardPointFromIndex(board, from_idx, 0);
-	point.x += x;
-	point.y += y;
-
-	if (point.y < 0) {
-		point.y = 0;
-	}
-
-	if (point.x >= board->board_size.x || point.x < 0 || point.y >= board->board_size.y || point.y < 0) {
-		return -1;
-	}
-
-	return _boardIndexFromPoint(board, point.x, point.y);
-}
-
-// ------------------------------------------------------------------------------------------------
-
 ztInternal bool _boardIsValidBlockPosition(Board *board, int index, int col_adjust, BlockType_Enum block, int rotation)
 {
+	if (index < 0 || index > board->board_size.x * board->board_size.y) {
+		return false;
+	}
+
 	i8 pieces[16];
-	_boardGetBlockPieces(board->rotation_system, block, rotation, pieces);
+	boardGetBlockPieces(board->rotation_system, block, rotation, pieces);
 
 	zt_fiz(4) {
 		int x = i;
@@ -610,7 +562,7 @@ ztInternal bool _boardIsValidBlockPosition(Board *board, int index, int col_adju
 			int y = j;
 			int pidx = (y * 4) + x;
 			if (pieces[pidx] != 0) {
-				int idx = _boardIndexAdjust(board, index, x - col_adjust, y);
+				int idx = boardIndexAdjust(board, index, x - col_adjust, y);
 				if (idx == -1 || board->board[idx] != 0) {
 					return false;
 				}
@@ -633,7 +585,11 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 	}
 
 	if (!result) {
-		ztPoint2 block_point = _boardPointFromIndex(board, board->active_block_pos_idx, 0);
+		ztPoint2 block_point = boardPointFromIndex(board, board->active_block_pos_idx, 0);
+
+		int orig_idx = board->active_block_pos_idx;
+		int orig_col = board->active_block_pos_col;
+		int orig_rot = board->active_block_rotation;
 
 		// check to the right
 		int idx_right = _boardIndexFromPoint(board, block_point.x + 1, block_point.y);
@@ -648,6 +604,12 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 			}
 			result = true;
 		}
+
+		// there's a problem when rotating the I piece when it's horizontal to get it to fit against the wall
+		// it seems to rotate right into filled spaces below it
+
+		// what we should do is if we are rotating an I piece from horizontal to vertical, then it should check to see
+		// if left/right movement has occurred as well and if so, try moving to the left/right when rotating
 
 		if (!result) {
 			// check to the left
@@ -668,11 +630,6 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 			if (board->active_block == BlockType_I && block_point.x == 0 && board->active_block_pos_col == 2) {
 				int idx_right = _boardIndexFromPoint(board, block_point.x + 2, block_point.y);
 				if (_boardIsValidBlockPosition(board, idx_right, board->active_block_pos_col, board->active_block, new_rotation)) {
-
-					if (!_boardIsValidBlockPosition(board, idx_right, 0, board->active_block, new_rotation)) {
-						_boardIsValidBlockPosition(board, idx_right, board->active_block_pos_col, board->active_block, new_rotation);
-					}
-
 					board->active_block_pos_col  = 0;
 					board->active_block_rotation = new_rotation;
 					result = true;
@@ -685,9 +642,6 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 				int idx_left = _boardIndexFromPoint(board, block_point.x - 2, block_point.y);
 				if (_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col, board->active_block, new_rotation)) {
 
-					if (!_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col - 1, board->active_block, new_rotation)) {
-						_boardIsValidBlockPosition(board, idx_left, board->active_block_pos_col, board->active_block, new_rotation);
-					}
 
 					if (board->active_block_pos_col > 0) {
 						board->active_block_pos_col -= 1;
@@ -722,6 +676,15 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 					result = true;
 				}
 			}
+		}
+
+		if (result && !_boardIsValidBlockPosition(board, board->active_block_pos_idx, board->active_block_pos_col, board->active_block, board->active_block_rotation)) {
+			// debug here to determine why a block was rotated into an invalid location
+			board->active_block_pos_idx  = orig_idx;
+			board->active_block_pos_col  = orig_col;
+			board->active_block_rotation = orig_rot;
+
+			_boardProcessRotation(board, rules, new_rotation);
 		}
 	}
 
@@ -775,7 +738,7 @@ ztInternal bool _boardMoveBlockLeft(Board *board, BoardRules *rules)
 		return false;
 	}
 
-	int new_position = _boardIndexAdjust(board, board->active_block_pos_idx, -1 - board->active_block_pos_col, 0);
+	int new_position = boardIndexAdjust(board, board->active_block_pos_idx, -1 - board->active_block_pos_col, 0);
 	if (new_position == -1) {
 		new_position = board->active_block_pos_idx;
 	}
@@ -807,7 +770,7 @@ ztInternal bool _boardMoveBlockLeft(Board *board, BoardRules *rules)
 
 ztInternal bool _boardMoveBlockRight(Board *board, BoardRules *rules)
 {
-	int new_position = _boardIndexAdjust(board, board->active_block_pos_idx, 1 - board->active_block_pos_col, 0);
+	int new_position = boardIndexAdjust(board, board->active_block_pos_idx, 1 - board->active_block_pos_col, 0);
 	if (new_position == -1) {
 		new_position = board->active_block_pos_idx;
 	}
@@ -987,10 +950,9 @@ ztInternal void _boardCycleBlocks(Board *board, int max_next, BlockType_Enum nex
 	board->active_block_pos_col  = 0;
 	board->active_block_rotation = 0;
 	board->block_has_held        = false;
-	board->hard_drop             = false;
 
 	i8 pieces[16];
-	_boardGetBlockPieces(board->rotation_system, next, 0, pieces);
+	boardGetBlockPieces(board->rotation_system, next, 0, pieces);
 
 	if (!_boardIsValidBlockPosition(board, board->active_block_pos_idx, board->active_block_pos_col, next, board->active_block_rotation)) {
 		board->active_block = BlockType_Invalid;
@@ -1005,7 +967,7 @@ ztInternal void _boardCycleBlocks(Board *board, int max_next, BlockType_Enum nex
 
 ztInternal void _boardProcessGravityDrop(Board *board, BoardRules *rules)
 {
-	int next_idx = _boardIndexAdjust(board, board->active_block_pos_idx, 0, 1);
+	int next_idx = boardIndexAdjust(board, board->active_block_pos_idx, 0, 1);
 	if (_boardIsValidBlockPosition(board, next_idx, board->active_block_pos_col, board->active_block, board->active_block_rotation)) {
 		board->active_block_pos_idx = next_idx;
 
@@ -1031,7 +993,7 @@ ztInternal void _boardProcessBlockLock(Board *board, r32 dt)
 		if (board->time_to_lock_soft < 0 || board->time_to_lock_hard < 0 || board->hard_drop) {
 			// piece drop
 			i8 pieces[16];
-			_boardGetBlockPieces(board->rotation_system, board->active_block, board->active_block_rotation, pieces);
+			boardGetBlockPieces(board->rotation_system, board->active_block, board->active_block_rotation, pieces);
 
 			zt_fiz(4) {
 				int x = i;
@@ -1039,7 +1001,7 @@ ztInternal void _boardProcessBlockLock(Board *board, r32 dt)
 					int y = j;
 					int pidx = (y * 4) + x;
 					if (pieces[pidx] != 0) {
-						int idx = _boardIndexAdjust(board, board->active_block_pos_idx, x - board->active_block_pos_col, y);
+						int idx = boardIndexAdjust(board, board->active_block_pos_idx, x - board->active_block_pos_col, y);
 						if (idx != -1) {
 							board->board[idx] = board->active_block;
 						}
@@ -1154,105 +1116,6 @@ ztInternal void _boardClearLines(Board *board, r32 dt)
 
 		_boardSetState(board, BoardState_Waiting);
 	}
-}
-
-// ------------------------------------------------------------------------------------------------
-
-ztInternal void _boardRenderBlockPiece(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, ztVec2 position)
-{
-	ztVec4 color = ztVec4::one;
-	switch (block)
-	{
-		case BlockType_I: color = ztVec4(146 / 255.f, 255 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_O: color = ztVec4(249 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_T: color = ztVec4(210 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_J: color = ztVec4(146 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_L: color = ztVec4(255 / 255.f, 205 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_S: color = ztVec4(146 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_Z: color = ztVec4(255 / 255.f, 146 / 255.f, 146 / 255.f, 1); break;
-
-		case BlockType_None: {
-			r32 osc = zt_linearRemap(zt_sin(board->current_state_time * 6), -1, 1, 0, 1);
-			color = ztVec4::lerp(ztVec4(.5f, .5f, .5f, 1), ztVec4(.45f, .45f, .45f, 1), osc);
-		} break;
-
-		case BlockType_Clearing: {
-			color = ztVec4(1, 1, 1, zt_lerp(0.f, 1.f, board == nullptr || rules == nullptr ? 0 : board->time_to_clear / rules->clear_time));
-		} break;
-
-		default: color = ztVec4(.5f, .5f, .5f, .25f); 
-	}
-
-	zt_drawListPushColor(draw_list, color);
-	{
-		zt_drawListAddFilledRect2D(draw_list, ztVec3(position, 0), ztVec2(.5f, .5f), ztVec2(0, 0), ztVec2(1, 1));
-	}
-	zt_drawListPopColor(draw_list);
-}
-
-// ------------------------------------------------------------------------------------------------
-
-ztInternal void _boardRenderBlockPiece(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, int at_index)
-{
-	ztVec2 pos(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));
-
-	ztPoint2 point = _boardPointFromIndex(board, at_index, 0);
-
-	pos.x += point.x * .5f;
-	pos.y -= point.y * .5f;
-
-	_boardRenderBlockPiece(board, rules, block, draw_list, pos);
-}
-
-// ------------------------------------------------------------------------------------------------
-
-ztInternal void _boardRenderBlock(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, int at_index, int col_adjust, int rotation)
-{
-	i8 pieces[16];
-	_boardGetBlockPieces(board->rotation_system, block, rotation, pieces);
-
-	//_boardRenderBlockPiece(board, BlockType_MAX, draw_list, at_index);
-
-	int min_idx = BOARD_TOP_BUFFER_COUNT * board->board_size.x;
-
-	zt_fiz(4) {
-		int x = i;
-		zt_fjz(4) {
-			int y = j;
-			int pidx = (y * 4) + x;
-			if (pieces[pidx] != 0) {
-				int idx = _boardIndexAdjust(board, at_index, x - col_adjust, y);
-				if (idx != -1 && idx >= min_idx) {
-					_boardRenderBlockPiece(board, rules, block, draw_list, idx);
-				}
-			}
-			//else if(pidx != 0) {
-			//	int idx = _boardIndexAdjust(board, at_index, x - col_adjust, y);
-			//	if (idx != -1) {
-			//		_boardRenderBlockPiece(board, BlockType_Invalid, draw_list, idx);
-			//	}
-			//}
-		}
-	}
-}
-
-// ------------------------------------------------------------------------------------------------
-
-ztInternal int _boardGetBlockHardDropPositionIndex(Board *board)
-{
-	int active_idx = board->active_block_pos_idx;
-	ztPoint2 point = _boardPointFromIndex(board, active_idx, 0);
-
-	int idx_prev = board->active_block_pos_idx;
-	for (int y = point.y + 1; y < board->board_size.y; ++y) {
-		int idx = _boardIndexFromPoint(board, point.x, y);
-		if (!_boardIsValidBlockPosition(board, idx, board->active_block_pos_col, board->active_block, board->active_block_rotation)) {
-			break;
-		}
-		idx_prev = idx;
-	}
-
-	return idx_prev;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1376,6 +1239,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 
 	board->stats.time_played += dt;
 	board->current_state_time += dt;
+	board->hard_drop = false;
 
 	if (board->current_state == BoardState_Waiting && board->active_block == BlockType_Invalid) {
 		_boardCycleBlocks(board, rules->max_next, _boardGetNextBlock(board, rules));
@@ -1450,7 +1314,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 							}
 						}
 						if (!has_moved) {
-							board->active_block_pos_idx = _boardGetBlockHardDropPositionIndex(board);
+							board->active_block_pos_idx = boardGetBlockHardDropPositionIndex(board);
 							board->time_to_drop = rules->drop_time;
 							board->hard_drop = true;
 							board->stats.hard_drops += 1;
@@ -1522,73 +1386,70 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 
 // ------------------------------------------------------------------------------------------------
 
-void boardRender(Board *board, BoardRules *rules, ztDrawList *draw_list, ztTextureID tex_block, ztTextureID tex_block_ghost)
+ztPoint2 boardPointFromIndex(Board *board, int index, int col_adjust)
 {
-	// draw the ghost block where the hard drop would go
-	if (tex_block_ghost != ztInvalidID) {
-		zt_drawListPushTexture(draw_list, tex_block_ghost);
-		{
-			_boardRenderBlock(board, rules, board->active_block, draw_list, _boardGetBlockHardDropPositionIndex(board), board->active_block_pos_col, board->active_block_rotation);
-		}
-		zt_drawListPopTexture(draw_list);
-	}
+	int y = zt_convertToi32Floor(index / (r32)board->board_size.x);
+	int x = index - (y * board->board_size.x);
 
-	zt_drawListPushTexture(draw_list, tex_block);
-	{
-		// draw the board
-		int min = board->board_size.x * 2;
-
-		zt_fiz(board->board_size.x * board->board_size.y) {
-			if (i < min || board->board[i] == BlockType_Invalid) {
-				//_boardRenderBlockPiece(board, BlockType_MAX, draw_list, i);
-				continue;
-			}
-
-			i16 board_piece = board->board[i];
-			_boardRenderBlockPiece(board, rules, (BlockType_Enum)board_piece, draw_list, i);
-		}
-
-		if (board->active_block != BlockType_Invalid) {
-			_boardRenderBlock(board, rules, board->active_block, draw_list, board->active_block_pos_idx, board->active_block_pos_col, board->active_block_rotation);
-		}
-	}
-	zt_drawListPopTexture(draw_list);
+	return ztPoint2(x - col_adjust, y);
 }
 
 // ------------------------------------------------------------------------------------------------
 
-void boardRenderBlock(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, ztDrawList *draw_list, ztVec2 position, int rotation, ztTextureID tex_block)
+void boardGetBlockPieces(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, int rotation, i8 *pieces)
 {
-	i8 pieces[16];
-	_boardGetBlockPieces(rotation_system, block, rotation, pieces);
-
-	position.y += .5f;
-	position.x -= .5f;
-
-	if (block == BlockType_I) {
-		if (rotation == 0 || rotation == 2) {
-			position.x -= .25f;
-			position.y -= .25f;
-		}
-	}
-	if (block == BlockType_O) {
-		position.x -= .25f;
-	}
-
-	zt_drawListPushTexture(draw_list, tex_block);
+	switch (rotation_system)
 	{
-		zt_fiz(4) {
-			int x = i;
-			zt_fjz(4) {
-				int y = j;
-				int pidx = (y * 4) + x;
-				if (pieces[pidx] != 0) {
-					_boardRenderBlockPiece(nullptr, nullptr, block, draw_list, position + ztVec2(x / 2.f, y / -2.f));
-				}
-			}
+		case BoardRotationSystem_GM: {
+			boardGetBlockPieces_GM(block, rotation, pieces);
+			return;
 		}
+
+		case BoardRotationSystem_SRS: {
+			boardGetBlockPieces_SRS(block, rotation, pieces);
+			return;
+		}
+
+		default: zt_assert(false);
 	}
-	zt_drawListPopTexture(draw_list);
+}
+
+// ------------------------------------------------------------------------------------------------
+
+int boardIndexAdjust(Board *board, int from_idx, int x, int y)
+{
+	ztPoint2 point = boardPointFromIndex(board, from_idx, 0);
+	point.x += x;
+	point.y += y;
+
+	if (point.y < 0) {
+		point.y = 0;
+	}
+
+	if (point.x >= board->board_size.x || point.x < 0 || point.y >= board->board_size.y || point.y < 0) {
+		return -1;
+	}
+
+	return _boardIndexFromPoint(board, point.x, point.y);
+}
+
+// ------------------------------------------------------------------------------------------------
+
+int boardGetBlockHardDropPositionIndex(Board *board)
+{
+	int active_idx = board->active_block_pos_idx;
+	ztPoint2 point = boardPointFromIndex(board, active_idx, 0);
+
+	int idx_prev = board->active_block_pos_idx;
+	for (int y = point.y + 1; y < board->board_size.y; ++y) {
+		int idx = _boardIndexFromPoint(board, point.x, y);
+		if (!_boardIsValidBlockPosition(board, idx, board->active_block_pos_col, board->active_block, board->active_block_rotation)) {
+			break;
+		}
+		idx_prev = idx;
+	}
+
+	return idx_prev;
 }
 
 // ------------------------------------------------------------------------------------------------

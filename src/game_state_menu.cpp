@@ -39,6 +39,8 @@ ztInternal void _gs_menuLocateOption(GameStateMenu *gs_menu, int item_idx, ztVec
 
 void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count, GameStateMenuOption *option_vals)
 {
+	zt_returnOnNull(gs_menu);
+
 	gs_menu->options = zt_mallocStructArray(char*, options_count);
 	gs_menu->max_width = 0;
 
@@ -56,6 +58,10 @@ void gs_menuSetOptions(GameStateMenu *gs_menu, char **options, int options_count
 
 void gs_menuFreeOptions(GameStateMenu *gs_menu)
 {
+	if (gs_menu == nullptr) {
+		return;
+	}
+
 	zt_fiz(gs_menu->options_count) {
 		zt_free(gs_menu->options[i]);
 	}
@@ -69,6 +75,8 @@ void gs_menuFreeOptions(GameStateMenu *gs_menu)
 
 void gs_menuBegin(GameStateMenu *gs_menu)
 {
+	zt_returnOnNull(gs_menu);
+
 	gs_menu->menu_time = 0;
 	gs_menu->select_time = 0;
 }
@@ -77,6 +85,8 @@ void gs_menuBegin(GameStateMenu *gs_menu)
 
 GameStateMenuResult_Enum gs_menuUpdate(GameStateMenu *gs_menu, ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *input_keys, ztInputController *input_controller, ztInputMouse *input_mouse, ztVec2 offset)
 {
+	zt_returnValOnNull(gs_menu, GameStateMenuResult_Active);
+
 	gs_menu->menu_time += dt;
 
 	if (gs_menu->select_time == 0 && input_this_frame) {
@@ -159,6 +169,10 @@ GameStateMenuResult_Enum gs_menuUpdate(GameStateMenu *gs_menu, ztGame *game, r32
 
 void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, ztVec2 offset)
 {
+	zt_returnOnNull(gs_menu);
+	zt_returnOnNull(game);
+	zt_returnOnNull(draw_list);
+
 	zt_drawListPushTexture(draw_list, 0);
 
 	if (gs_menu->max_width == 0) {

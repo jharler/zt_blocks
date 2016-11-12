@@ -20,6 +20,7 @@
 
 #include "main_dll.cpp"
 #include "board.cpp"
+#include "board_renderer_2d.cpp"
 #include "game_type_arcade.cpp"
 #include "game_state_intro.cpp"
 #include "game_state_menu_main.cpp"
