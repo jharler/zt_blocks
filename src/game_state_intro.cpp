@@ -30,7 +30,7 @@ bool gs_introUpdate(ztGame *game, r32 dt, bool input_this_frame, ztInputKeys *in
 		input_mouse->leftJustPressed() || input_mouse->rightJustPressed() || input_mouse->middleJustPressed()
 		) {
 
-		game->game_state_intro.time_left = GS_INTRO_TIME_FADE_OUT;
+		game->game_state_intro.time_left = zt_min(game->game_state_intro.time_left, GS_INTRO_TIME_FADE_OUT);
 	}
 
 	return true;

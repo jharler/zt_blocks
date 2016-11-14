@@ -181,16 +181,25 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 {
 	ztGame *game = (ztGame*)memory;
 
-	ztInputKeys       *input_keys       = zt_inputKeysAccessState();
-	ztInputMouse      *input_mouse      = zt_inputMouseAccessState();
-	ztInputController *input_controller = zt_inputControllerAccessState(0);
+//	ztInputKeys       *input_keys       = zt_inputKeysAccessState();
+//	ztInputMouse      *input_mouse      = zt_inputMouseAccessState();
+//	ztInputController *input_controller = zt_inputControllerAccessState(0);
 	ztInputKeys_Enum   input_keystrokes[16];
 	zt_inputGetKeyStrokes(input_keystrokes);
 
+	ztInputKeys       local_input_keys[ztInputKeys_MAX];
+	ztInputMouse      local_input_mouse;
+	ztInputController local_input_controller;
+
+	zt_inputKeysCopyState(local_input_keys);
+	zt_inputMouseCopyState(&local_input_mouse);
+	zt_inputControllerCopyState(&local_input_controller, 0);
+
+
 	zt_guiManagerUpdate(game->gui_manager, dt);
-	bool gui_input = zt_guiManagerHandleInput(game->gui_manager, input_keys, input_keystrokes, input_mouse);
+	bool gui_input = zt_guiManagerHandleInput(game->gui_manager, local_input_keys, input_keystrokes, &local_input_mouse);
 	if(!gui_input) {
-		if (input_keys[ztInputKeys_Tilda].justPressed()) {
+		if (local_input_keys[ztInputKeys_Tilda].justPressed()) {
 			bool console_shown = false;
 			zt_debugConsoleToggle(&console_shown);
 			if (console_shown) {
@@ -198,8 +207,13 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 			}
 		}
 	}
+	else { //if(zt_guiManagerHasKeyboardFocus(game->gui_manager)) {
+		zt_memSet(local_input_keys, zt_sizeof(ztInputKeys) * ztInputKeys_MAX, 0);
+		zt_memSet(&local_input_mouse, zt_sizeof(ztInputMouse), 0);
+		zt_memSet(&local_input_controller, zt_sizeof(ztInputController), 0);
+	}
 
-	if (!gui_input && input_keys[ztInputKeys_M].justPressed()) {
+	if (!gui_input && local_input_keys[ztInputKeys_M].justPressed()) {
 		zt_audioSetMute(!zt_audioGetMute());
 	}
 
@@ -241,29 +255,38 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	switch (game->game_state)
 	{
 		case GameState_Intro: {
-			if (!gs_introUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+			if (!gs_introUpdate(game, dt, input_this_frame, local_input_keys, &local_input_controller, &local_input_mouse)) {
 				return false;
 			}
 		} break;
 
 		case GameState_MenuMain: {
-			if (!gs_menuMainUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+			if (!gs_menuMainUpdate(game, dt, input_this_frame, local_input_keys, &local_input_controller, &local_input_mouse)) {
 				return false;
 			}
 		} break;
 
 		case GameState_Credits: {
-			if (!gs_creditsUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+			if (!gs_creditsUpdate(game, dt, input_this_frame, local_input_keys, &local_input_controller, &local_input_mouse)) {
 				return false;
 			}
 		} break;
 
 		case GameState_Playing: {
-			if (!gs_playingUpdate(game, dt, input_this_frame, input_keys, input_controller, input_mouse)) {
+			if (!gs_playingUpdate(game, dt, input_this_frame, local_input_keys, &local_input_controller, &local_input_mouse)) {
 				return false;
 			}
 		} break;
 	}
+
+	i32 draw_list_flags = 0;
+#if defined(ZT_DEBUG)
+	if (local_input_keys[ztInputKeys_Control].pressed() && local_input_keys[ztInputKeys_Menu].pressed() && local_input_keys[ztInputKeys_Shift].pressed()) {
+		if (local_input_keys[ztInputKeys_D].justPressed()) {
+			draw_list_flags |= ztRenderDrawListFlags_DebugDump;
+		}
+	}
+#endif
 
 	zt_rendererClear(ztVec4(.25f, 0, 0, 0));
 
@@ -315,7 +338,7 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 
 	}
 	zt_drawListPopShader(&game->draw_list);
-	zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest);
+	zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest | 0);
 
 	{
 		zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));
@@ -323,7 +346,7 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 			zt_guiManagerRender(game->gui_manager, &game->draw_list);
 		}
 		zt_drawListPopShader(&game->draw_list);
-		zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest | ztRenderDrawListFlags_NoClear);
+		zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest | ztRenderDrawListFlags_NoClear | draw_list_flags);
 	}
 
 	zt_assetManagerCheckForChanges(&game->asset_manager);
