@@ -195,8 +195,8 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 		boardReset(&gta->board);
 	}
 
-	r32 drop_times[] = { .5f, .45f, .4f, .35f, .3f, .25f, .175f, .075f, .05f, .025f, .0125f, .0f };
-	r32 lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f, 4.f, 3.5f, 2.5f, 2.0f, 2.0f, 2.0f };
+	r32 drop_times[] = { .5f, .45f, .4f, .35f, .3f, .25f, .175f, .125f, .095f, .075f, .0625f, .0425f, .0325f,  .02f, .01f, .0f,   .0f,  .0f, .0f };
+	r32 lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f,   4.f,  3.5f,  2.5f,  2.5f,   2.0f,   2.0f,   2.0f,  2.0f,  2.f, 2.f, 1.75f, 1.5f, 1.f };
 
 	int idx = zt_min(zt_elementsOf(drop_times) - 1, zt_convertToi32Floor(gta->board.stats.lines_cleared / 10.f));
 	gta->rules.drop_time      = drop_times[idx];
@@ -271,7 +271,7 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 			return false;
 		}
 
-		gta->mouse_screen_pos = ztPoint2(input_mouse->screen_x, input_mouse->screen_y);
+		gta->mouse_screen_pos = ztVec2i(input_mouse->screen_x, input_mouse->screen_y);
 
 		if (!gta->paused && input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
 			gta->paused = true;

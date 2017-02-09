@@ -24,7 +24,7 @@ struct ztGame
 				        
 	ztCamera             camera_2d;
 	ztCamera             camera_3d;
-	ztGuiManagerID       gui_manager;
+	ztGuiManager        *gui_manager;
 	//ztVrSystem          *vr;
 	ztAssetManager       asset_manager;
 	ztDrawList           draw_list;

@@ -22,7 +22,7 @@ struct GameTypeArcade
 	ztFontID         font_primary;
 	ztFontID         font_large;
 
-	ztPoint2         mouse_screen_pos;
+	ztVec2i         mouse_screen_pos;
 
 	BoardRenderer2d  board_renderer2d;
 

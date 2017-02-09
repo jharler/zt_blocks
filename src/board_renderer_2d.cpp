@@ -50,7 +50,7 @@ ztInternal void _boardRenderer2dBlockPiece(Board *board, BoardRules *rules, Bloc
 {
 	ztVec2 pos(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));
 
-	ztPoint2 point = boardPointFromIndex(board, at_index, 0);
+	ztVec2i point = boardPointFromIndex(board, at_index, 0);
 
 	pos.x += point.x * .5f;
 	pos.y -= point.y * .5f;
@@ -133,8 +133,8 @@ void boardRenderer2dUpdate(BoardRenderer2d *renderer, Board *board, BoardRules *
 	renderer->active_block_last_block = board->active_block;
 
 	if (board->hard_drop) {// && renderer->hard_drop_time <= 0) {
-		ztPoint2 block_point_prev = boardPointFromIndex(board, last_idx, last_col);
-		ztPoint2 block_point_curr = boardPointFromIndex(board, board->active_block_pos_idx, board->active_block_pos_col);
+		ztVec2i block_point_prev = boardPointFromIndex(board, last_idx, last_col);
+		ztVec2i block_point_curr = boardPointFromIndex(board, board->active_block_pos_idx, board->active_block_pos_col);
 
 		renderer->hard_drop_pos = ztVec2(block_point_prev.x / 2.f, block_point_prev.y / -2.f) + ztVec2(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));;
 

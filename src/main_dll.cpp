@@ -196,7 +196,6 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	zt_inputControllerCopyState(&local_input_controller, 0);
 
 
-	zt_guiManagerUpdate(game->gui_manager, dt);
 	bool gui_input = zt_guiManagerHandleInput(game->gui_manager, local_input_keys, input_keystrokes, &local_input_mouse);
 	if(!gui_input) {
 		if (local_input_keys[ztInputKeys_Tilda].justPressed()) {
@@ -343,11 +342,14 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	{
 		zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));
 		{
-			zt_guiManagerRender(game->gui_manager, &game->draw_list);
+			zt_guiManagerRender(game->gui_manager, &game->draw_list, dt);
 		}
+
 		zt_drawListPopShader(&game->draw_list);
 		zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest | ztRenderDrawListFlags_NoClear | draw_list_flags);
 	}
+
+
 
 	zt_assetManagerCheckForChanges(&game->asset_manager);
 	return true;

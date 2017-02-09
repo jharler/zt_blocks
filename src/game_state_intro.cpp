@@ -42,7 +42,7 @@ void gs_introRender(ztGame *game, ztDrawList *draw_list)
 {
 	zt_drawListPushTexture(draw_list, game->tex_zt_logo);
 	{
-		ztPoint2 tex_size = zt_textureGetSize(game->tex_zt_logo);
+		ztVec2i tex_size = zt_textureGetSize(game->tex_zt_logo);
 		ztVec2 size(tex_size.x / zt_pixelsPerUnit(), tex_size.y / zt_pixelsPerUnit());
 		ztVec3 pos(0, 0, 0);
 		ztVec4 color(1, 1, 1, 1);

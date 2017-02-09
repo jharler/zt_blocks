@@ -120,7 +120,7 @@ bool gs_menuMainBegin(ztGame *game)
 			case GameStateMenuOptionType_Bool: {
 				char value[128];
 				zt_iniFileGetValue(_gs_iniFile, "general", _gs_menuOptionsKeys[i], _gs_menuOptionsKeysDefaults[i], value, zt_elementsOf(value));
-				game->game_state_main_menu.gs_options_menu_options[i].val_bool = zt_strEquals(value, "true", false);
+				game->game_state_main_menu.gs_options_menu_options[i].val_bool = zt_striEquals(value, "true");
 
 				switch (i)
 				{

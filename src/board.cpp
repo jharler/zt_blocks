@@ -585,7 +585,7 @@ ztInternal bool _boardProcessRotation(Board *board, BoardRules *rules, int new_r
 	}
 
 	if (!result) {
-		ztPoint2 block_point = boardPointFromIndex(board, board->active_block_pos_idx, 0);
+		ztVec2i block_point = boardPointFromIndex(board, board->active_block_pos_idx, 0);
 
 		int orig_idx = board->active_block_pos_idx;
 		int orig_col = board->active_block_pos_col;
@@ -1126,7 +1126,7 @@ Board boardMake(int width, int height, BoardRandomizer_Enum randomizer, BoardRot
 {
 	Board board = {};
 	board.board = zt_mallocStructArray(i16, width * (height + BOARD_TOP_BUFFER_COUNT));
-	board.board_size = ztPoint2(width, height + BOARD_TOP_BUFFER_COUNT);
+	board.board_size = ztVec2i(width, height + BOARD_TOP_BUFFER_COUNT);
 	board.rotation_system = rotation_system;
 	
 	srand((unsigned int)time(0));
@@ -1386,12 +1386,12 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 
 // ------------------------------------------------------------------------------------------------
 
-ztPoint2 boardPointFromIndex(Board *board, int index, int col_adjust)
+ztVec2i boardPointFromIndex(Board *board, int index, int col_adjust)
 {
 	int y = zt_convertToi32Floor(index / (r32)board->board_size.x);
 	int x = index - (y * board->board_size.x);
 
-	return ztPoint2(x - col_adjust, y);
+	return ztVec2i(x - col_adjust, y);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1418,7 +1418,7 @@ void boardGetBlockPieces(BoardRotationSystem_Enum rotation_system, BlockType_Enu
 
 int boardIndexAdjust(Board *board, int from_idx, int x, int y)
 {
-	ztPoint2 point = boardPointFromIndex(board, from_idx, 0);
+	ztVec2i point = boardPointFromIndex(board, from_idx, 0);
 	point.x += x;
 	point.y += y;
 
@@ -1438,7 +1438,7 @@ int boardIndexAdjust(Board *board, int from_idx, int x, int y)
 int boardGetBlockHardDropPositionIndex(Board *board)
 {
 	int active_idx = board->active_block_pos_idx;
-	ztPoint2 point = boardPointFromIndex(board, active_idx, 0);
+	ztVec2i point = boardPointFromIndex(board, active_idx, 0);
 
 	int idx_prev = board->active_block_pos_idx;
 	for (int y = point.y + 1; y < board->board_size.y; ++y) {

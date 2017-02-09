@@ -119,7 +119,7 @@ struct BoardStats
 struct Board
 {
 	i16                     *board;
-	ztPoint2                 board_size;
+	ztVec2i                 board_size;
 
 	BoardRotationSystem_Enum rotation_system = BoardRotationSystem_SRS;
 
@@ -203,7 +203,7 @@ BoardState_Enum boardUpdate(Board *board, r32 dt, BoardRules *rules, BoardInput_
 
 
 void            boardGetBlockPieces(BoardRotationSystem_Enum rotation_system, BlockType_Enum block, int rotation, i8 *pieces);
-ztPoint2        boardPointFromIndex(Board *board, int index, int col_adjust);
+ztVec2i        boardPointFromIndex(Board *board, int index, int col_adjust);
 int             boardIndexAdjust(Board *board, int from_idx, int x, int y);
 int             boardGetBlockHardDropPositionIndex(Board *board);
 

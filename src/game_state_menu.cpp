@@ -257,11 +257,11 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 			{
 				case GameStateMenuOptionType_Bool: {
 					ztVec3 check_pos(offset.x + pos.x + size.x + (64 / zt_pixelsPerUnit()), offset.y + pos.y, 0);
-					ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztPoint2(0, 0), ztPoint2(64, 64));
+					ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztVec2i(0, 0), ztVec2i(64, 64));
 					zt_drawListAddSprite(draw_list, &sprite, check_pos);
 
 					if (gs_menu->option_vals[i].val_bool) {
-						ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztPoint2(64, 0), ztPoint2(64, 64));
+						ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztVec2i(64, 0), ztVec2i(64, 64));
 						zt_drawListAddSprite(draw_list, &sprite, check_pos);
 					}
 				} break;
