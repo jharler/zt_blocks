@@ -8,7 +8,7 @@ ztInternal ztVec2 _gs_menuBoxSize(int total_items)
 {
 	r32 ppu = zt_pixelsPerUnit();
 
-	return ztVec2(7, total_items * ((100) / ppu));
+	return zt_vec2(7, total_items * ((100) / ppu));
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -184,16 +184,16 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 	}
 
 	if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_Darken)) {
-		zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, .75f));
+		zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, .75f));
 		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, zt_cameraOrthoGetViewportSize(&game->camera_2d), ztVec2::zero, ztVec2::one);
 		zt_drawListPopColor(draw_list);
 	}
 
 	if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_Background)) {
-		zt_drawListPushColor(draw_list, ztVec4(1, 0, 0, 1));
-		zt_drawListAddFilledRect2D(draw_list, offset, _gs_menuBoxSize(gs_menu->options_count) + ztVec2(.25f, .25f), ztVec2::zero, ztVec2::one);
+		zt_drawListPushColor(draw_list, zt_vec4(1, 0, 0, 1));
+		zt_drawListAddFilledRect2D(draw_list, offset, _gs_menuBoxSize(gs_menu->options_count) + zt_vec2(.25f, .25f), ztVec2::zero, ztVec2::one);
 		zt_drawListPopColor(draw_list);
-		zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, 1));
+		zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, 1));
 		zt_drawListAddFilledRect2D(draw_list, offset, _gs_menuBoxSize(gs_menu->options_count), ztVec2::zero, ztVec2::one);
 		zt_drawListPopColor(draw_list);
 	}
@@ -211,12 +211,12 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 
 		if (gs_menu->active_option == i) {
 			if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_BoxActive)) {
-				ztVec2 box_pos = pos + offset + ztVec2(size.x / 2 - .25f, 0);
+				ztVec2 box_pos = pos + offset + zt_vec2(size.x / 2 - .25f, 0);
 				zt_drawListPushTexture(draw_list, 0);
-				zt_drawListPushColor(draw_list, ztVec4(1, 0, 0, 1));
-				zt_drawListAddFilledRect2D(draw_list, box_pos, size + ztVec2(.25f, .25f), ztVec2::zero, ztVec2::one);
+				zt_drawListPushColor(draw_list, zt_vec4(1, 0, 0, 1));
+				zt_drawListAddFilledRect2D(draw_list, box_pos, size + zt_vec2(.25f, .25f), ztVec2::zero, ztVec2::one);
 				zt_drawListPopColor(draw_list);
-				zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, 1));
+				zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, 1));
 				zt_drawListAddFilledRect2D(draw_list, box_pos, size, ztVec2::zero, ztVec2::one);
 				zt_drawListPopColor(draw_list);
 				zt_drawListPopTexture(draw_list);
@@ -231,7 +231,7 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 
 				zt_strMakePrintf(text_grow, 256, "<color=%02x%02x%02x%02x>%s</color>", zt_lerp(255, 251, osc), zt_lerp(255, 98, osc), zt_lerp(255, 20, osc), zt_lerp(255, 0, pct), gs_menu->options[i]);
 
-				ztVec2 scale = ztVec2::lerp(ztVec2::one, ztVec2(2, 2), pct);
+				ztVec2 scale = ztVec2::lerp(ztVec2::one, zt_vec2(2, 2), pct);
 				ztVec2 pos_grow = pos;
 
 				if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_AlignLeft)) {
@@ -245,7 +245,7 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 
 			if (zt_bitIsSet(gs_menu->flags, GameStateMenuFlags_Pointer)) {
 				// note: this only works right because we changed the '^' character in the bitmap font to be the arrow
-				zt_drawListAddText2D(draw_list, font_id, "^   ", offset + pos + ztVec2(osc * .25f, 0), ztAlign_Right, ztAnchor_Right);
+				zt_drawListAddText2D(draw_list, font_id, "^   ", offset + pos + zt_vec2(osc * .25f, 0), ztAlign_Right, ztAnchor_Right);
 			}
 		}
 		else {
@@ -256,12 +256,12 @@ void gs_menuRender(GameStateMenu *gs_menu, ztGame *game, ztDrawList *draw_list, 
 			switch (gs_menu->option_vals[i].type)
 			{
 				case GameStateMenuOptionType_Bool: {
-					ztVec3 check_pos(offset.x + pos.x + size.x + (64 / zt_pixelsPerUnit()), offset.y + pos.y, 0);
-					ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztVec2i(0, 0), ztVec2i(64, 64));
+					ztVec3 check_pos = zt_vec3(offset.x + pos.x + size.x + (64 / zt_pixelsPerUnit()), offset.y + pos.y, 0);
+					ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, zt_vec2i(0, 0), zt_vec2i(64, 64));
 					zt_drawListAddSprite(draw_list, &sprite, check_pos);
 
 					if (gs_menu->option_vals[i].val_bool) {
-						ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, ztVec2i(64, 0), ztVec2i(64, 64));
+						ztSprite sprite = zt_spriteMake(game->tex_gui_checkbox, zt_vec2i(64, 0), zt_vec2i(64, 64));
 						zt_drawListAddSprite(draw_list, &sprite, check_pos);
 					}
 				} break;

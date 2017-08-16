@@ -38,8 +38,8 @@ struct GameStateIntro
 
 // ------------------------------------------------------------------------------------------------
 
-#define GS_ZT_LOGO_SMALL_SIZE			ztVec2(1.5f, 1.5f)
-#define GS_ZT_LOGO_SMALL_POSITION       ztVec3(-8.75f, -4.5f, 0)
+#define GS_ZT_LOGO_SMALL_SIZE			zt_vec2(1.5f, 1.5f)
+#define GS_ZT_LOGO_SMALL_POSITION       zt_vec3(-8.75f, -4.5f, 0)
 #define GS_ZT_LOGO_SMALL_OPACITY		.5f
 
 #define GS_INTRO_TIME	2
@@ -149,13 +149,13 @@ struct GameStateMenuMain
 
 // ------------------------------------------------------------------------------------------------
 
-#define GS_MENU_LOGO_SIZE		ztVec2(1280 / 64.f, 604 / 64.f)
-#define GS_MENU_LOGO_POSITION	ztVec3(0, 1.75f, 0)
+#define GS_MENU_LOGO_SIZE		zt_vec2(1280 / 64.f, 604 / 64.f)
+#define GS_MENU_LOGO_POSITION	zt_vec3(0, 1.75f, 0)
 
 #define GS_MENU_MAIN_TIME_FADE_IN	.5f
 #define GS_MENU_MAIN_TIME_FADE_OUT	.5f
 
-#define GS_MENU_MAIN_OFFSET         ztVec2(0, -1.65f)
+#define GS_MENU_MAIN_OFFSET         zt_vec2(0, -1.65f)
 
 // ------------------------------------------------------------------------------------------------
 

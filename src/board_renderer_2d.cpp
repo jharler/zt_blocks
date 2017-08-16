@@ -8,24 +8,24 @@ ztVec4 _boardRenderer2dBlockPieceColor(Board *board, BoardRules *rules, BlockTyp
 
 	switch (block)
 	{
-		case BlockType_I: color = ztVec4(146 / 255.f, 255 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_O: color = ztVec4(249 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_T: color = ztVec4(210 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_J: color = ztVec4(146 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
-		case BlockType_L: color = ztVec4(255 / 255.f, 205 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_S: color = ztVec4(146 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
-		case BlockType_Z: color = ztVec4(255 / 255.f, 146 / 255.f, 146 / 255.f, 1); break;
+		case BlockType_I: color = zt_vec4(146 / 255.f, 255 / 255.f, 255 / 255.f, 1); break;
+		case BlockType_O: color = zt_vec4(249 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
+		case BlockType_T: color = zt_vec4(210 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
+		case BlockType_J: color = zt_vec4(146 / 255.f, 146 / 255.f, 255 / 255.f, 1); break;
+		case BlockType_L: color = zt_vec4(255 / 255.f, 205 / 255.f, 146 / 255.f, 1); break;
+		case BlockType_S: color = zt_vec4(146 / 255.f, 255 / 255.f, 146 / 255.f, 1); break;
+		case BlockType_Z: color = zt_vec4(255 / 255.f, 146 / 255.f, 146 / 255.f, 1); break;
 
 		case BlockType_None: {
 			r32 osc = zt_linearRemap(zt_sin(board->current_state_time * 6), -1, 1, 0, 1);
-			color = ztVec4::lerp(ztVec4(.5f, .5f, .5f, 1), ztVec4(.45f, .45f, .45f, 1), osc);
+			color = ztVec4::lerp(zt_vec4(.5f, .5f, .5f, 1), zt_vec4(.45f, .45f, .45f, 1), osc);
 		} break;
 
 		case BlockType_Clearing: {
-			color = ztVec4(1, 1, 1, zt_lerp(0.f, 1.f, board == nullptr || rules == nullptr ? 0 : board->time_to_clear / rules->clear_time));
+			color = zt_vec4(1, 1, 1, zt_lerp(0.f, 1.f, board == nullptr || rules == nullptr ? 0 : board->time_to_clear / rules->clear_time));
 		} break;
 
-		default: color = ztVec4(.5f, .5f, .5f, .25f);
+		default: color = zt_vec4(.5f, .5f, .5f, .25f);
 	}
 
 	return color;
@@ -39,7 +39,7 @@ ztInternal void _boardRenderer2dBlockPiece(Board *board, BoardRules *rules, Bloc
 
 	zt_drawListPushColor(draw_list, color);
 	{
-		zt_drawListAddFilledRect2D(draw_list, ztVec3(position, 0), ztVec2(.5f, .5f), ztVec2(0, 0), ztVec2(1, 1));
+		zt_drawListAddFilledRect2D(draw_list, zt_vec3(position, 0), zt_vec2(.5f, .5f), zt_vec2(0, 0), zt_vec2(1, 1));
 	}
 	zt_drawListPopColor(draw_list);
 }
@@ -48,7 +48,7 @@ ztInternal void _boardRenderer2dBlockPiece(Board *board, BoardRules *rules, Bloc
 
 ztInternal void _boardRenderer2dBlockPiece(Board *board, BoardRules *rules, BlockType_Enum block, ztDrawList *draw_list, int at_index)
 {
-	ztVec2 pos(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));
+	ztVec2 pos = zt_vec2(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));
 
 	ztVec2i point = boardPointFromIndex(board, at_index, 0);
 
@@ -136,7 +136,7 @@ void boardRenderer2dUpdate(BoardRenderer2d *renderer, Board *board, BoardRules *
 		ztVec2i block_point_prev = boardPointFromIndex(board, last_idx, last_col);
 		ztVec2i block_point_curr = boardPointFromIndex(board, board->active_block_pos_idx, board->active_block_pos_col);
 
-		renderer->hard_drop_pos = ztVec2(block_point_prev.x / 2.f, block_point_prev.y / -2.f) + ztVec2(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));;
+		renderer->hard_drop_pos = zt_vec2(block_point_prev.x / 2.f, block_point_prev.y / -2.f) + zt_vec2(board->board_size.x * -.25f + .25f, (board->board_size.y * .25f - .25f) + (BOARD_TOP_BUFFER_COUNT / 2.f - .5f));;
 
 		i8 pieces[16];
 		boardGetBlockPieces(board->rotation_system, last_block, last_rot, pieces);
@@ -213,7 +213,7 @@ void boardRenderer2dRender(BoardRenderer2d *renderer, Board *board, BoardRules *
 		ztVec4 color = renderer->hard_drop_color;
 		color.a = zt_lerp(0.f, 1.f, renderer->hard_drop_time / BOARD_RENDERER_2D_HARD_DROP_TIME);
 		zt_drawListPushColor(draw_list, color);
-		zt_drawListAddFilledRect2D(draw_list, ztVec3(renderer->hard_drop_pos + position, 0), renderer->hard_drop_size, ztVec2::zero, ztVec2::one);
+		zt_drawListAddFilledRect2D(draw_list, zt_vec3(renderer->hard_drop_pos + position, 0), renderer->hard_drop_size, ztVec2::zero, ztVec2::one);
 		zt_drawListPopColor(draw_list);
 		zt_drawListPopTexture(draw_list);
 	}
@@ -248,7 +248,7 @@ void boardRenderer2dRenderBlock(BoardRenderer2d *renderer, BoardRotationSystem_E
 				int y = j;
 				int pidx = (y * 4) + x;
 				if (pieces[pidx] != 0) {
-					_boardRenderer2dBlockPiece(nullptr, nullptr, block, draw_list, position + ztVec2(x / 2.f, y / -2.f));
+					_boardRenderer2dBlockPiece(nullptr, nullptr, block, draw_list, position + zt_vec2(x / 2.f, y / -2.f));
 				}
 			}
 		}

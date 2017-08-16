@@ -52,19 +52,19 @@ void gs_creditsRender(ztGame *game, ztDrawList *draw_list)
 	zt_drawListAddFilledRect2D(draw_list, GS_MENU_LOGO_POSITION, GS_MENU_LOGO_SIZE, ztVec2::zero, ztVec2::one);
 	zt_drawListPopTexture(draw_list);
 
-	ztVec2 offset_main_offscreen = ztVec2(-20, 0);
-	ztVec2 offset_options_offscreen = ztVec2(20, 0);
+	ztVec2 offset_main_offscreen = zt_vec2(-20, 0);
+	ztVec2 offset_options_offscreen = zt_vec2(20, 0);
 
 	ztVec2 offset_main = ztVec2::zero;
-	ztVec2 offset_options = ztVec2(-4, 0);
+	ztVec2 offset_options = zt_vec2(-4, 0);
 
 	zt_drawListPushTexture(draw_list, 0);
-	zt_drawListPushColor(draw_list, ztVec4(1, 0, 0, 1));
-	zt_drawListAddFilledRect2D(draw_list, ztVec3(0, -1.5f, 0), ztVec2(10.5f, 5.5f), ztVec2::zero, ztVec2::one);
+	zt_drawListPushColor(draw_list, zt_vec4(1, 0, 0, 1));
+	zt_drawListAddFilledRect2D(draw_list, zt_vec3(0, -1.5f, 0), zt_vec2(10.5f, 5.5f), ztVec2::zero, ztVec2::one);
 	zt_drawListPopColor(draw_list);
 
-	zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, 1));
-	zt_drawListAddFilledRect2D(draw_list, ztVec3(0, -1.5f, 0), ztVec2(10, 5), ztVec2::zero, ztVec2::one);
+	zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, 1));
+	zt_drawListAddFilledRect2D(draw_list, zt_vec3(0, -1.5f, 0), zt_vec2(10, 5), ztVec2::zero, ztVec2::one);
 	zt_drawListPopColor(draw_list);
 	zt_drawListPopTexture(draw_list);
 
@@ -75,7 +75,7 @@ void gs_creditsRender(ztGame *game, ztDrawList *draw_list)
 		"www.github.com/jharler"
 		;
 
-	zt_drawListAddFancyText2D(draw_list, game->font_primary, credits, ztVec2(0, -1.5f), ztAlign_Center, ztAnchor_Center);
+	zt_drawListAddFancyText2D(draw_list, game->font_primary, credits, zt_vec2(0, -1.5f), ztAlign_Center, ztAnchor_Center);
 
 	r32 black_pct = 0;
 
@@ -89,7 +89,7 @@ void gs_creditsRender(ztGame *game, ztDrawList *draw_list)
 	if (black_pct != 0) {
 		zt_drawListPushTexture(draw_list, 0);
 		{
-			zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, black_pct));
+			zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, black_pct));
 			{
 				ztVec2 cam_size = zt_cameraOrthoGetViewportSize(&game->camera_2d);
 				zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, ztVec2::zero, ztVec2::one);
@@ -102,10 +102,10 @@ void gs_creditsRender(ztGame *game, ztDrawList *draw_list)
 	zt_drawListPushTexture(draw_list, game->tex_zt_logo);
 	{
 		if (game->game_state_credits.time_out > 0) {
-			zt_drawListPushColor(draw_list, ztVec4(1, 1, 1, zt_lerp(0.f, GS_ZT_LOGO_SMALL_OPACITY, game->game_state_credits.time_out / GS_CREDITS_TIME_FADE_OUT)));
+			zt_drawListPushColor(draw_list, zt_vec4(1, 1, 1, zt_lerp(0.f, GS_ZT_LOGO_SMALL_OPACITY, game->game_state_credits.time_out / GS_CREDITS_TIME_FADE_OUT)));
 		}
 		else {
-			zt_drawListPushColor(draw_list, ztVec4(1, 1, 1, GS_ZT_LOGO_SMALL_OPACITY));
+			zt_drawListPushColor(draw_list, zt_vec4(1, 1, 1, GS_ZT_LOGO_SMALL_OPACITY));
 		}
 		{
 			zt_drawListAddFilledRect2D(draw_list, GS_ZT_LOGO_SMALL_POSITION, GS_ZT_LOGO_SMALL_SIZE, ztVec2::zero, ztVec2::one);

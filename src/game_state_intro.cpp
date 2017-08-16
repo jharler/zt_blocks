@@ -43,9 +43,9 @@ void gs_introRender(ztGame *game, ztDrawList *draw_list)
 	zt_drawListPushTexture(draw_list, game->tex_zt_logo);
 	{
 		ztVec2i tex_size = zt_textureGetSize(game->tex_zt_logo);
-		ztVec2 size(tex_size.x / zt_pixelsPerUnit(), tex_size.y / zt_pixelsPerUnit());
-		ztVec3 pos(0, 0, 0);
-		ztVec4 color(1, 1, 1, 1);
+		ztVec2 size = zt_vec2(tex_size.x / zt_pixelsPerUnit(), tex_size.y / zt_pixelsPerUnit());
+		ztVec3 pos = zt_vec3(0, 0, 0);
+		ztVec4 color = zt_vec4(1, 1, 1, 1);
 
 		if (game->game_state_intro.time_left < GS_INTRO_TIME_FADE_OUT) {
 			r32 pct = 1 - (game->game_state_intro.time_left / GS_INTRO_TIME_FADE_OUT);
@@ -77,7 +77,7 @@ void gs_introRender(ztGame *game, ztDrawList *draw_list)
 		if (black_pct != 0) {
 			zt_drawListPushTexture(draw_list, 0);
 			{
-				zt_drawListPushColor(draw_list, ztVec4(0, 0, 0, black_pct));
+				zt_drawListPushColor(draw_list, zt_vec4(0, 0, 0, black_pct));
 				{
 					ztVec2 cam_size = zt_cameraOrthoGetViewportSize(&game->camera_2d);
 					zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, ztVec2::zero, ztVec2::one);

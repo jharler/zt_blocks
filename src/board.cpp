@@ -1126,7 +1126,7 @@ Board boardMake(int width, int height, BoardRandomizer_Enum randomizer, BoardRot
 {
 	Board board = {};
 	board.board = zt_mallocStructArray(i16, width * (height + BOARD_TOP_BUFFER_COUNT));
-	board.board_size = ztVec2i(width, height + BOARD_TOP_BUFFER_COUNT);
+	board.board_size = zt_vec2i(width, height + BOARD_TOP_BUFFER_COUNT);
 	board.rotation_system = rotation_system;
 	
 	srand((unsigned int)time(0));
@@ -1391,7 +1391,7 @@ ztVec2i boardPointFromIndex(Board *board, int index, int col_adjust)
 	int y = zt_convertToi32Floor(index / (r32)board->board_size.x);
 	int x = index - (y * board->board_size.x);
 
-	return ztVec2i(x - col_adjust, y);
+	return zt_vec2i(x - col_adjust, y);
 }
 
 // ------------------------------------------------------------------------------------------------

@@ -88,17 +88,17 @@ ztInternal void _gta_drawLabeledArea(ztDrawList *draw_list, ztFontID font, char 
 
 	zt_drawListPushTexture(draw_list, 0);
 	zt_drawListPushColor(draw_list, color_bg);
-	zt_drawListAddFilledRect2D(draw_list, position + ztVec3(vert_off, horz_off, 0), size + ztVec2(border * 2, border * 2 + header_size), ztVec2(0, 0), ztVec2(1, 1));
+	zt_drawListAddFilledRect2D(draw_list, position + zt_vec3(vert_off, horz_off, 0), size + zt_vec2(border * 2, border * 2 + header_size), zt_vec2(0, 0), zt_vec2(1, 1));
 	zt_drawListPopColor(draw_list);
 
 	zt_drawListPushColor(draw_list, color_fg);
-	zt_drawListAddFilledRect2D(draw_list, position + ztVec3(vert_off, horz_off, 0) - ztVec3(0, header_size / 2.f, 0), size, ztVec2(0, 0), ztVec2(1, 1));
+	zt_drawListAddFilledRect2D(draw_list, position + zt_vec3(vert_off, horz_off, 0) - zt_vec3(0, header_size / 2.f, 0), size, zt_vec2(0, 0), zt_vec2(1, 1));
 	zt_drawListPopColor(draw_list);
 	zt_drawListPopTexture(draw_list);
 
-	zt_drawListPushColor(draw_list, ztVec4(0, 1, 0, 1));
-	zt_drawListAddText2D(draw_list, font, label, position.xy + ztVec2(vert_off, horz_off) + ztVec2(size.x / -2.f, (size.y + border) / 2.f), ztAlign_Left, ztAnchor_Left);
-	zt_drawListPopColor(draw_list);
+	//zt_drawListPushColor(draw_list, zt_vec4(0, 1, 0, 1));
+	zt_drawListAddText2D(draw_list, font, label, position.xy + zt_vec2(vert_off, horz_off) + zt_vec2(size.x / -2.f, (size.y + border) / 2.f), ztAlign_Left, ztAnchor_Left);
+	//zt_drawListPopColor(draw_list);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 	}
 
 	r32 drop_times[] = { .5f, .45f, .4f, .35f, .3f, .25f, .175f, .125f, .095f, .075f, .0625f, .0425f, .0325f,  .02f, .01f, .0f,   .0f,  .0f, .0f };
-	r32 lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f,   4.f,  3.5f,  2.5f,  2.5f,   2.0f,   2.0f,   2.0f,  2.0f,  2.f, 2.f, 1.75f, 1.5f, 1.f };
+	r32 lock_times[] = { 7.f, 6.5f, 6.f, 5.5f, 5.f, 4.5f,   4.f,  3.5f,  2.5f,  2.5f,   2.0f,   2.0f,   2.0f,  2.0f,  2.f, 2.f, 1.75f, 1.75f, 1.75f };
 
 	int idx = zt_min(zt_elementsOf(drop_times) - 1, zt_convertToi32Floor(gta->board.stats.lines_cleared / 10.f));
 	gta->rules.drop_time      = drop_times[idx];
@@ -271,7 +271,7 @@ bool gt_arcadeUpdate(GameTypeArcade *gta, ztGame *game, r32 dt, bool input_this_
 			return false;
 		}
 
-		gta->mouse_screen_pos = ztVec2i(input_mouse->screen_x, input_mouse->screen_y);
+		gta->mouse_screen_pos = zt_vec2i(input_mouse->screen_x, input_mouse->screen_y);
 
 		if (!gta->paused && input_keys[ztInputKeys_Escape].justPressed() || input_controller->justPressed(ztInputControllerButton_Start)) {
 			gta->paused = true;
@@ -300,7 +300,7 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 		zt_drawListPushTexture(draw_list, tex_background);
 
 		ztVec2 cam_size = zt_cameraOrthoGetViewportSize(camera_2d);
-		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, ztVec2(0, 0), ztVec2(1, 1));
+		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, cam_size, zt_vec2(0, 0), zt_vec2(1, 1));
 
 		zt_drawListPopTexture(draw_list);
 	}
@@ -309,22 +309,22 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 
 	r32 game_border = 10 / zt_pixelsPerUnit();
 	r32 header_border = 31 / zt_pixelsPerUnit();
-	ztVec4 area_color_bg(200 / 255.f, 31 / 255.f, 31 / 255.f, 1.f);
-	ztVec4 area_color_fg(0, 0, 0, 1);
+	ztVec4 area_color_bg = zt_vec4(200 / 255.f, 31 / 255.f, 31 / 255.f, 1.f);
+	ztVec4 area_color_fg = zt_vec4(0, 0, 0, 1);
 	{
 		// draw game board
 		zt_drawListPushTexture(draw_list, 0);
 		zt_drawListPushColor(draw_list, area_color_bg);
-		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, ztVec2(5 + game_border * 2, 10 + game_border * 2), ztVec2(0, 0), ztVec2(1, 1));
+		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, zt_vec2(5 + game_border * 2, 10 + game_border * 2), zt_vec2(0, 0), zt_vec2(1, 1));
 		zt_drawListPopColor(draw_list);
 
 		zt_drawListPushColor(draw_list, area_color_fg);
-		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, ztVec2(5, 10), ztVec2(0, 0), ztVec2(1, 1));
+		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, zt_vec2(5, 10), zt_vec2(0, 0), zt_vec2(1, 1));
 		zt_drawListPopColor(draw_list);
 		zt_drawListPopTexture(draw_list);
 
 		zt_drawListPushTexture(draw_list, gta->board_grid);
-		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, ztVec2(5, 10), ztVec2(0, 0), ztVec2(1, 1));
+		zt_drawListAddFilledRect2D(draw_list, ztVec3::zero, zt_vec2(5, 10), zt_vec2(0, 0), zt_vec2(1, 1));
 		zt_drawListPopTexture(draw_list);
 	}
 	{
@@ -334,64 +334,64 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 
 	{
 		// draw hold area
-		_gta_drawLabeledArea(draw_list, gta->font_primary, "Hold", ztVec3(-3.25f, 4.76f, 0), ztVec2(2.5f, 2.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
+		_gta_drawLabeledArea(draw_list, gta->font_primary, "Hold", zt_vec3(-3.25f, 4.76f, 0), zt_vec2(2.5f, 2.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		if (gta->board.hold != BlockType_Invalid) {
-			boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.hold, draw_list, ztVec2(-4.5f, 3.5f), 0);
+			boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.hold, draw_list, zt_vec2(-4.5f, 3.5f), 0);
 		}
 	}
 
 	{
 		// draw next area
-		_gta_drawLabeledArea(draw_list, gta->font_primary, "Next", ztVec3(3.25f, 4.76f, 0), ztVec2(2.5f, 7.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Left, ztAlign_Top);
+		_gta_drawLabeledArea(draw_list, gta->font_primary, "Next", zt_vec3(3.25f, 4.76f, 0), zt_vec2(2.5f, 7.5f), area_color_bg, area_color_fg, game_border, header_border, ztAlign_Left, ztAlign_Top);
 
 		zt_fiz(gta->rules.max_next) {
 			if (gta->board.next[i] != BlockType_Invalid) {
-				boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.next[i], draw_list, ztVec2(4.5f, 3.5f - (i * 2.5f)), 0);
+				boardRenderer2dRenderBlock(&gta->board_renderer2d, gta->board.rotation_system, gta->board.next[i], draw_list, zt_vec2(4.5f, 3.5f - (i * 2.5f)), 0);
 			}
 		}
 	}
 
-	ztVec2 size(4.25f, 0.95f);
+	ztVec2 size = zt_vec2(4.25f, 0.95f);
 	r32 x_pos = -3.25f;
 
 	{
 		// draw level
-		ztVec3 pos(x_pos, .5f, 0);
+		ztVec3 pos = zt_vec3(x_pos, .5f, 0);
 		_gta_drawLabeledArea(draw_list, gta->font_primary, "Level", pos, size, area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		zt_strMakePrintf(level_str, 8, "%d", level + 1);
-		zt_drawListAddText2D(draw_list, gta->font_large, level_str, ztVec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
+		zt_drawListAddText2D(draw_list, gta->font_large, level_str, zt_vec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
 	}
 
 	{
 		// draw lines
-		ztVec3 pos(x_pos, -1.65f, 0);
+		ztVec3 pos = zt_vec3(x_pos, -1.65f, 0);
 		_gta_drawLabeledArea(draw_list, gta->font_primary, "Lines", pos, size, area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		zt_strMakePrintf(lines_str, 8, "%d", gta->board.stats.lines_cleared);
-		zt_drawListAddText2D(draw_list, gta->font_large, lines_str, ztVec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
+		zt_drawListAddText2D(draw_list, gta->font_large, lines_str, zt_vec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
 	}
 
 	{
 		// draw score
-		ztVec3 pos(x_pos, -3.8f, 0);
+		ztVec3 pos = zt_vec3(x_pos, -3.8f, 0);
 		_gta_drawLabeledArea(draw_list, gta->font_primary, "Score", pos, size, area_color_bg, area_color_fg, game_border, header_border, ztAlign_Right, ztAlign_Top);
 
 		char score_str[64];
 		zt_strNumberToString(score_str, zt_elementsOf(score_str), (i64)score);
-		zt_drawListAddText2D(draw_list, gta->font_large, score_str, ztVec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
+		zt_drawListAddText2D(draw_list, gta->font_large, score_str, zt_vec2(pos.x - size.x / 2.f, pos.y - (header_border + game_border)));
 	}
 
 	if (gta->board.current_state == BoardState_Dying) {
-		ztVec2 pos = ztVec2::lerp(ztVec2(0, -8), ztVec2(0, 3), zt_min(1, gta->board.current_state_time / BOARD_GAME_OVER_TIME));
+		ztVec2 pos = ztVec2::lerp(zt_vec2(0, -8), zt_vec2(0, 3), zt_min(1, gta->board.current_state_time / BOARD_GAME_OVER_TIME));
 		gs_menuRender(gta->game_over, game, draw_list, pos);
 	}
 
 	zt_cameraShakePostRender(&gta->board.camera_shake, draw_list);
 
 	if(false){
-		ztVec2 pos(-2.25, 4.5f);
+		ztVec2 pos = zt_vec2(-2.25, 4.5f);
 		ztVec2 mouse_pos = zt_cameraOrthoScreenToWorld(camera_2d, gta->mouse_screen_pos.x, gta->mouse_screen_pos.y);
 
 		zt_fiz(gta->board.board_size.y) {
@@ -399,12 +399,12 @@ void gt_arcadeRender(GameTypeArcade *gta, ztGame *game, ztDrawList *draw_list, z
 			zt_fjz(gta->board.board_size.x) {
 				int x = j;
 
-				ztVec2 grid_pos(pos.x + (x * .5f), pos.y - (y * .5f));
+				ztVec2 grid_pos = zt_vec2(pos.x + (x * .5f), pos.y - (y * .5f));
 
-				if (zt_collisionPointInRect(mouse_pos, grid_pos, ztVec2(.5f, .5f))) {
+				if (zt_collisionPointInRect(mouse_pos, grid_pos, zt_vec2(.5f, .5f))) {
 					int idx = (y * gta->board.board_size.x) + x;
 					zt_strMakePrintf(str, 16, "%d,%d\n%d", x, y, idx);
-					zt_drawListAddText2D(draw_list, gta->font_primary, str, ztVec2(-9, 0), ztAlign_Center, ztAnchor_Center);
+					zt_drawListAddText2D(draw_list, gta->font_primary, str, zt_vec2(-9, 0), ztAlign_Center, ztAnchor_Center);
 				}
 			}
 		}

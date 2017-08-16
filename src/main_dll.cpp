@@ -27,8 +27,12 @@
 ZT_DLLEXPORT bool dll_settings(ztGameDetails* details, ztGameSettings* settings)
 {
 	settings->memory = zt_megabytes(128);
-	settings->native_w = 1280;
+	settings->native_w =  1280;
 	settings->native_h =  720;
+	settings->screen_w = 1920;// 1280;
+	settings->screen_h = 1080;// 720;
+
+	settings->renderer_screen_change_behavior = ztRendererScreenChangeBehavior_ScaleAll;
 	return true;
 }
 
@@ -44,7 +48,7 @@ ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, voi
 
 	game->gui_manager = zt_guiManagerMake(&game->camera_2d, nullptr, zt_memGetGlobalArena());
 	zt_guiInitDebug(game->gui_manager);
-
+	zt_guiDebugHide();
 	//game->vr = zt_vrIsHeadsetPresent() ? zt_vrMake() : nullptr;
 
 
@@ -113,6 +117,8 @@ ZT_DLLEXPORT bool dll_unload(void *memory)
 ZT_DLLEXPORT void dll_screenChange(ztGameSettings *settings, void *memory)
 {
 	ztGame *game = (ztGame*)memory;
+//	zt_cameraMakeOrtho(&game->camera_2d, settings->screen_w, settings->screen_h, settings->native_w, settings->native_h, 0.1f, 100.f, game->camera_2d.position);
+//	zt_cameraRecalcMatrices(&game->camera_2d);
 	zt_cameraMakeOrtho(&game->camera_2d, settings->screen_w, settings->screen_h, settings->native_w, settings->native_h, 0.1f, 100.f, game->camera_2d.position);
 	zt_cameraRecalcMatrices(&game->camera_2d);
 	zt_cameraMakePersp(&game->camera_3d, settings->screen_w, settings->screen_h, zt_degreesToRadians(60), 0.1f, 100.f, game->camera_3d.position, game->camera_3d.rotation);
@@ -287,7 +293,7 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	}
 #endif
 
-	zt_rendererClear(ztVec4(.25f, 0, 0, 0));
+	zt_rendererClear(zt_vec4(.25f, 0, 0, 0));
 
 	//if (game->vr) {
 	//	if (zt_vrUpdate(game->vr)) {
@@ -301,7 +307,7 @@ ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)
 	//			zt_sceneLighting(game->scene, cameras[i]);
 	//
 	//			zt_textureRenderTargetPrepare(textures[i]);
-	//			zt_rendererClear(ztVec4(0, 0, 0, 1));
+	//			zt_rendererClear(zt_vec4(0, 0, 0, 1));
 	//			zt_sceneRender(game->scene, cameras[i]);
 	//			zt_textureRenderTargetCommit(textures[i]);
 	//		}
